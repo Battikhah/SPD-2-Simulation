@@ -1,0 +1,46 @@
+{
+  "method": "Full factorial",
+  "seed": 42,
+  "space": {
+    "sf": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "frequency_mhz": [
+      433,
+      915
+    ],
+    "tx_dbm": [
+      8.0,
+      14.0,
+      17.0
+    ],
+    "inference_latency_ms": [
+      100.0,
+      200.0,
+      800.0
+    ],
+    "inference_current_ma": [
+      30.0,
+      70.0,
+      150.0
+    ],
+    "gateways": [
+      1,
+      2,
+      4
+    ],
+    "trigger_probability": [
+      0.1,
+      0.25,
+      0.5,
+      1.0
+    ]
+  },
+  "base_scenario": "default_scenario.json",
+  "hardware_baseline_reported_on": "2026-10-28"
+}

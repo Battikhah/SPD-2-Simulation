@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+*.log
+
+# Generated audio, models, features and training results are reproducible.
+/outputs/
+*.wav
+*.npz
+*.npy
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.h5
+*.keras
