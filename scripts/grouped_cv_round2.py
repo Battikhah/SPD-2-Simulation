@@ -49,7 +49,10 @@ def uncapped(y, s):
         f"p0.5_{k}": v for k, v in operating_point(y, s, 0.5).items()}
 
 
-def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, batch=512):
+def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, batch=512, pos_boost=1.0,
+          keep=None):
+    """`pos_boost` scales the class-balance positive weight; `keep` (a list) receives each fold's
+    (numpy state dict, mu, sd) for export."""
     import torch
 
     window_p = np.zeros(len(wy))
@@ -66,7 +69,7 @@ def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, ba
         steps = epochs * int(np.ceil(len(xt) / batch))
         sched = torch.optim.lr_scheduler.OneCycleLR(opt, 2e-3, total_steps=steps)
         scaler = torch.amp.GradScaler("cuda")
-        pw = (yt == 0).sum() / (yt == 1).sum().clamp(min=1)
+        pw = pos_boost * (yt == 0).sum() / (yt == 1).sum().clamp(min=1)
         g = torch.Generator(device=device).manual_seed(seed + k)
         rng = np.random.default_rng(seed + k)  # mixup coefficients
         T, F = xt.shape[2], xt.shape[3]
@@ -105,6 +108,8 @@ def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, ba
         xe = torch.tensor((X[tew] - mu) / sd, dtype=torch.float32, device=device).unsqueeze(1)
         with torch.no_grad():
             window_p[tew] = torch.cat([torch.sigmoid(net(b).float()).squeeze(1) for b in xe.split(max(batch * 4, 1))]).cpu().numpy()
+        if keep is not None:
+            keep.append(({k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}, float(mu), float(sd)))
         del xt, yt, xe
         torch.cuda.empty_cache()
     return window_p, params
