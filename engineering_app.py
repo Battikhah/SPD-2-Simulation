@@ -204,8 +204,44 @@ tabs = st.tabs(
         "Optimization Laboratory",
         "Assumptions and Sources",
         "Export Results",
+        "Packet & MFCC Budget",
     ]
 )
+
+with tabs[12]:
+    from simulator.radio import airtime_ms
+
+    st.header("Packet and MFCC budget")
+    st.caption("Separate what-if calculator: one scheduled packet per node per window. These inputs do not change the battery model.")
+    a, b, c = st.columns(3)
+    nodes = a.number_input("Nodes", min_value=1, value=1000, step=1)
+    heads = b.number_input("Cluster heads", min_value=1, value=1, step=1)
+    window = c.number_input("Reporting window (seconds)", min_value=1.0, value=1800.0)
+    a, b, c = st.columns(3)
+    sf = a.selectbox("Spreading factor", range(7, 13))
+    bw = b.selectbox("Bandwidth (kHz)", [125, 250, 500, 62.5])
+    cr = c.selectbox("Coding rate", [5, 6, 7, 8], format_func=lambda n: f"4/{n}")
+    guard = st.number_input("Guard time per packet (ms)", min_value=0.0, value=50.0)
+    requested = st.number_input("Packet payload to try (bytes)", min_value=2, max_value=255, value=100)
+    per_head = (nodes + heads - 1) // heads
+    available_ms = window * 1000 / per_head - guard
+    fits = [n for n in range(2, 256) if airtime_ms(n, sf=sf, bandwidth_khz=bw, coding_rate=cr) <= available_ms]
+    nominal = sf * bw * 1000 / (2**sf) * 4 / cr / 1000
+    st.metric("Approximate nominal LoRa bit rate", f"{nominal:.3f} kbps")
+    if fits:
+        packet = fits[-1]
+        duration = airtime_ms(requested, sf=sf, bandwidth_khz=bw, coding_rate=cr)
+        x, y, z = st.columns(3)
+        x.metric("Maximum packet payload / node", f"{packet} bytes")
+        y.metric("Reserved: date + battery", "2 bytes")
+        z.metric("Available for MFCC", f"{packet - 2} bytes")
+        st.write(f"Your {requested}-byte packet carries {requested - 2} MFCC bytes. Airtime: {duration:.1f} ms; effective payload rate: {requested * 8 / duration:.3f} kbps.")
+        if requested > packet:
+            st.warning("This packet does not fit for every node in the selected window.")
+    else:
+        st.warning("Even the 2-byte packet does not fit for every node. Increase the window or cluster heads, or reduce the node count.")
+    st.caption("Assumes balanced scheduled traffic, one receiver per head, no collisions, retries or additional application headers; 8-symbol preamble, explicit header and CRC. The date encoding is assumed to fit in one byte. Actual throughput and coverage require testing. The 255-byte limit is the raw LoRa packet payload, not a LoRaWAN limit.")
+    st.markdown("[Semtech: LoRa modulation and data rates](https://www.semtech.com/uploads/technology/LoRa/lora-and-lorawan.pdf)")
 
 # Controls are all rendered before simulation, so every result uses this rerun's values.
 with tabs[1]:
