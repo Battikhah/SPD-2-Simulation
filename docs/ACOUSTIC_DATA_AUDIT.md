@@ -83,3 +83,15 @@ Of the 65 reviewed cross-split candidates, 28 have opposite workbook labels. Tha
 | C | full-clip log-mel CMVN CNN w8 d4 | 3×25.7k | 0.75 | 90.2% / 46.9% / 76.0% / 0.82 | 0.94 / 0.26 |
 
 Whole-clip pooling is a real improvement for the 30×13 MFCC track (AUC 0.52 → 0.76); full-clip context did not beat 1 s windows for log-mel. Per-window channel normalisation (CMVN) consistently hurt, meaning stationary spectral colour carries much of the predictive information, consistent with recording-condition confounding (it cannot distinguish that from genuine host-tissue acoustics). In every strong model the same-device negative folders 24 (and usually 25) are scored as infested, so the headline numbers reflect separation from the five available negative folders, not verified detection. All figures are development cross-validation, not final-test results; no model or threshold is frozen.
+
+### 10-second log-mel inputs, tracks A and C (1 November 2026)
+
+`scripts/grouped_cv_10s.py` cuts each recording's 640×64 log-mel into two consecutive 10.24 s segments (320×64). Each segment is one model input, and the recording score is the mean of the two. Same folds, trainer (SpecAugment, mixup, OneCycle, 40 epochs) and development-only data; 3 seeds. Outputs: `outputs/grouped-cv-campaign/10s/`.
+
+| Track | Model (3-seed ensemble) | Params per model | ROC-AUC (seeds) | Balanced point: recall / FPR / accuracy / F1 | Recall @5% FPR | Folder 24 / 25 |
+| --- | --- | ---: | --- | --- | ---: | --- |
+| A | 10 s CNN w32 d4 | 405,313 | 0.931 (0.92–0.94) | 85.4% / 9.1% / 87.5% / 0.89 | 60.0% | 0.99 / 0.88 |
+| C | 10 s CNN w8 d4 | 25,681 | 0.932 (0.92–0.94) | 82.8% / 8.9% / 86.0% / 0.88 | 57.9% | 0.96 / 0.86 |
+| C | 10 s CNN w4 d4 | 6,537 | 0.919 (0.90–0.92) | 79.5% / 10.7% / 83.3% / 0.85 | 63.1% | 0.94 / 0.77 |
+
+10 s inputs perform about the same as 1 s windows (AUC 0.95) and the full 20 s clip (0.92); the context length is not what limits performance. A 6.5k-parameter 10 s model is within about 0.01 AUC of the 405k one. The same-device negative folder 24 is still scored as infested (within-device AUC 0.10–0.62), so the confounding caveat above applies unchanged. These are optimistic pooled-OOF operating points on development data, not final-test results.
