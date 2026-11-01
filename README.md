@@ -19,9 +19,8 @@ python3 -m venv .venv
 .venv/bin/python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
-Open [localhost:8501](http://localhost:8501) for the concise meeting overview.
-Inputs live in the current browser session. To open the full engineering dashboard
-separately, run `.venv/bin/python -m streamlit run engineering_app.py`.
+Open [localhost:8501](http://localhost:8501) for the full interactive engineering
+dashboard. Inputs live in the current browser session.
 
 ```sh
 .venv/bin/python -m pytest -q

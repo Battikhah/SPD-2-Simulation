@@ -1,5 +1,6 @@
-"""Streamlit entry point for the concise project meeting overview."""
+"""Streamlit entry point for the palm-weevil LoRa digital twin."""
 
-from simulator.prototype_view import render
+import runpy
+from pathlib import Path
 
-render()
+runpy.run_path(str(Path(__file__).with_name("engineering_app.py")), run_name="__main__")
