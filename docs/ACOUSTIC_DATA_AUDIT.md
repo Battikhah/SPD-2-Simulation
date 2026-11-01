@@ -68,3 +68,18 @@ Of the 65 reviewed cross-split candidates, 28 have opposite workbook labels. Tha
 | C | MFCC tiny CNN w4 | 441 | 0.21–0.48 | ~1% |
 
 **Interpretation.** The log-mel CNNs appear strong, but the effect is driven by three negative folders (7, 9: orange/apricot trees with wind; 8: fig trees with rain) that the model scores low. The only negatives recorded by the same devices as many positives (folders 24 and 25) score 0.93–0.99, i.e. they are called infested; within device for folder 24, AUC is 0.29–0.42 (below chance). The development data contain just five negative folders, so this is consistent with the model learning host-tree/environment rather than borer activity, and cannot be called detection. Seed-to-seed recall at 5% FPR varies by up to 30 percentage points, and a single earlier run of the same w32 model gave 68.9% then 93.0%: single-run figures are unreliable. The 30×13 MFCC track is near chance under folder hold-out. A 6.5k-parameter log-mel CNN (≈6.5 KB int8 weights, estimate) matches the 101k model, so model size is not the ESP32 bottleneck; flash/RAM/latency/energy remain unmeasured on WROOM32. No model or threshold was frozen, and the final holdout was not evaluated. Achieving genuinely high, trustworthy recall needs negative recordings from the same palm hosts, sites and devices as the positives.
+
+### Whole-recording inputs and uncapped operating points (1 November 2026)
+
+`scripts/grouped_cv_fullclip.py` (same folds, development data only) adds whole-recording inputs. Track B now uses one 30×13 MFCC matrix per ~20 s recording (notebook MFCC spec, frames split into 30 equal chunks, mean- or max-pooled, as in ML-for-Senior's `np.array_split`); tracks A/C use the full 640×64 log-mel (20.48 s). Training adds SpecAugment, mixup, OneCycle and 40 epochs (3 seeds). `scripts/grouped_cv_round2.py` holds the shared trainer and the uncapped metrics. The "balanced point" is the threshold maximising recall − FPR on pooled out-of-fold scores, so it is optimistic. Outputs: `outputs/grouped-cv-campaign/fullclip/`.
+
+| Track | Model (3-seed ensemble unless noted) | Weights | ROC-AUC | Balanced point: recall / FPR / accuracy / F1 | Folder 24 / 25 mean score |
+| --- | --- | ---: | ---: | --- | --- |
+| A | 1 s log-mel CNN w32 (round 1) | 3×101k | 0.95 | 86.1% / 7.9% / 88.4% / 0.90 | 0.98 / 0.94 |
+| A | full-clip log-mel CNN w32 d4 | 3×405k | 0.92 | 82.5% / 9.7% / 85.5% / 0.88 | 0.99 / 0.87 |
+| B | 1 s MFCC 30×13 CNN (round 1) | 3×101k | 0.52 | 61.3% / 45.8% / 58.6% / 0.65 | 0.93 / 0.51 |
+| B | **whole-clip MFCC 30×13 mean-pool CNN** | 3×101k | **0.76** | 91.3% / 38.4% / 79.9% / 0.85 | 0.96 / 0.20 |
+| C | **1 s log-mel CNN w8 (round 1)** | 3×6.5k | 0.95 | **97.5% / 13.5% / 93.3% / 0.95** | 0.99 / 0.95 |
+| C | full-clip log-mel CMVN CNN w8 d4 | 3×25.7k | 0.75 | 90.2% / 46.9% / 76.0% / 0.82 | 0.94 / 0.26 |
+
+Whole-clip pooling is a real improvement for the 30×13 MFCC track (AUC 0.52 → 0.76); full-clip context did not beat 1 s windows for log-mel. Per-window channel normalisation (CMVN) consistently hurt, meaning stationary spectral colour carries much of the predictive information, consistent with recording-condition confounding (it cannot distinguish that from genuine host-tissue acoustics). In every strong model the same-device negative folders 24 (and usually 25) are scored as infested, so the headline numbers reflect separation from the five available negative folders, not verified detection. All figures are development cross-validation, not final-test results; no model or threshold is frozen.
