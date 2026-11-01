@@ -52,3 +52,19 @@ Of the 65 reviewed cross-split candidates, 28 have opposite workbook labels. Tha
 ## Why ML-for-Senior reports ~98% recall — split-leakage diagnostic (1 November 2026)
 
 `outputs/reference-ml-for-senior/treevibes/data.py` assigns each file its own group (`grouping='file_and_duplicate_only'`) unless an explicit group CSV is supplied, so its split is effectively a random recording-level split; its own README says this does not prove generalization to unseen trees. `scripts/split_leakage_demo.py` compares, on the 2,542 development (train+val) recordings only, a fixed MFCC-summary random forest under two 5-fold schemes: random recording-level folds gave **100.00% recall / 1.85% FPR**, whereas folds holding out whole workbook folders (30 folders) gave **65.79% recall / 62.56% FPR**. A trivial model reaching near-perfect scores under recording-level splitting shows the high figure reflects neighbouring recordings from the same folder/tree/session (and class-source confounding) rather than detection ability. Folder is only a proxy for tree/session. This is a diagnostic, not a tuned result; the final holdout was not read.
+
+## Local GPU three-track campaign, folder-grouped CV (1 November 2026)
+
+`scripts/grouped_cv_campaign.py` (run with `--smoke` first; GPU-only, RTX 2070, torch 2.5.1+cu121) scores the three requested tracks on the 2,542 development recordings (1,567 positive / 975 negative, 53,176 one-second windows, 30 folders) with 5-fold GroupKFold that holds out whole workbook folders. The test partition is never read. Features reuse the notebook's exact `mfcc-8k-30x13-v1` MFCC and 59×64 log-mel code; window scores are averaged per recording. Neural models were trained with 3 seeds each (12 epochs, AdamW, pos-weighted BCE, training-only noise augmentation, training-fold normalisation). Recall@FPR thresholds come from pooled out-of-fold negatives (mildly optimistic). Outputs: `outputs/grouped-cv-campaign/full/` (`results.json`, `oof_predictions.csv`, `run_info.json`).
+
+| Track | Model | Params | ROC-AUC | Recall @5% FPR (seeds) |
+| --- | --- | ---: | ---: | --- |
+| A unrestricted | log-mel 59×64 CNN w32 | 101,441 | 0.90–0.96 | 45.1%, 74.9%, 57.3% (3-seed ensemble 57.1%) |
+| A unrestricted | AST embedding + logistic | 769 head | 0.56 | 8.7% |
+| B 30×13 MFCC | MFCC CNN w32 | 101,441 | 0.35–0.65 | 10.8%, 2.7%, 14.3% |
+| B/C | MFCC 52 stats + logistic | 53 | 0.55 | 19.5% |
+| C ESP32 candidate | log-mel CNN w8 | 6,545 | 0.91–0.95 | 55.7%, 47.8%, 39.3% |
+| C ESP32 candidate | log-mel CNN w4 | 1,705 | 0.85–0.92 | 49.2%, 33.6%, 58.0% |
+| C | MFCC tiny CNN w4 | 441 | 0.21–0.48 | ~1% |
+
+**Interpretation.** The log-mel CNNs appear strong, but the effect is driven by three negative folders (7, 9: orange/apricot trees with wind; 8: fig trees with rain) that the model scores low. The only negatives recorded by the same devices as many positives (folders 24 and 25) score 0.93–0.99, i.e. they are called infested; within device for folder 24, AUC is 0.29–0.42 (below chance). The development data contain just five negative folders, so this is consistent with the model learning host-tree/environment rather than borer activity, and cannot be called detection. Seed-to-seed recall at 5% FPR varies by up to 30 percentage points, and a single earlier run of the same w32 model gave 68.9% then 93.0%: single-run figures are unreliable. The 30×13 MFCC track is near chance under folder hold-out. A 6.5k-parameter log-mel CNN (≈6.5 KB int8 weights, estimate) matches the 101k model, so model size is not the ESP32 bottleneck; flash/RAM/latency/energy remain unmeasured on WROOM32. No model or threshold was frozen, and the final holdout was not evaluated. Achieving genuinely high, trustworthy recall needs negative recordings from the same palm hosts, sites and devices as the positives.
