@@ -1,0 +1,13 @@
+{
+  "baseline_trial_id": "0f76c3e188ea66a4b59ac274",
+  "pretrained_model": "MIT/ast-finetuned-audioset-10-10-0.4593",
+  "revision": "f826b80d28226b62986cc218e5cec390b1096902",
+  "classifier": "logistic-C100",
+  "weight": 0.2,
+  "threshold": 0.74095111780272,
+  "recall": 0.7157622739018088,
+  "fpr": 0.04452054794520548,
+  "tp": 554,
+  "fp": 13,
+  "warning": "Validation-selected exploratory blend; test untouched; ancestry unreviewed; no independent validation."
+}

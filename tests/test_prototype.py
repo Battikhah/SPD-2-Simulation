@@ -121,7 +121,7 @@ def test_slow_spreading_factor_increases_slot_and_reduces_capacity():
 
 
 def test_meeting_app_keeps_only_four_scenario_controls_and_baseline_values():
-    app = AppTest.from_file("../app.py", default_timeout=60).run()
+    app = AppTest.from_file("../meeting_app.py", default_timeout=60).run()
     assert not app.exception
     assert any("Palm monitoring — project overview" in item.value for item in app.title)
     assert [item.value for item in app.subheader] == ["How it works", "Battery estimate", "Deployment limit"]
@@ -140,7 +140,7 @@ def test_meeting_app_keeps_only_four_scenario_controls_and_baseline_values():
 
 
 def test_meeting_inputs_recalculate_deployment_and_battery():
-    app = AppTest.from_file("../app.py", default_timeout=60).run()
+    app = AppTest.from_file("../meeting_app.py", default_timeout=60).run()
     app.number_input(key="meeting_area").set_value(200.0).run()
     assert not app.exception
     assert next(item.value for item in app.metric if item.label == "Nodes in scenario") == "20,000"
@@ -152,7 +152,7 @@ def test_meeting_inputs_recalculate_deployment_and_battery():
 
 
 def test_stale_engineering_session_state_cannot_change_meeting_assumptions():
-    app = AppTest.from_file("../app.py", default_timeout=60)
+    app = AppTest.from_file("../meeting_app.py", default_timeout=60)
     app.session_state["prototype_cfg"] = default_prototype_config() | {
         "sleep_ma": 2.5, "sleep_mode": "Manual battery estimate", "sf": 12,
         "trigger_probability": 0.0, "planning_fraction": 1.0,

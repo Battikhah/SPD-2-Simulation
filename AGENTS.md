@@ -1,0 +1,43 @@
+# Agent handoff: palm sensing and acoustic detection
+
+Last updated: 1 November 2026. Read this file before making changes. Claude Code may not automatically load `AGENTS.md`; give it this file explicitly or import it from its own instructions.
+
+## Project and priorities
+
+This repository contains a Streamlit digital twin for palm monitoring and a separate TreeVibes acoustic training/evaluation workflow. The user wants useful, autonomous progress, but **scientific validity, truthful labels and leakage-safe evaluation take priority over model scores**. Distinguish simulated assumptions, weak acoustic labels, validation results, biological verification and hardware measurements. Do not present the simulator or a training metric as proof of field detection or ESP32 capability.
+
+Before acting, read `docs/ACOUSTIC_DATA_AUDIT.md`, the latest entries of `outputs/DEVICE_SETUP_STATUS.md` when available, and `docs/DEVICE_HANDOFF.md`. The status file is chronological: earlier entries saying downloads or training are active/blocked are historical and superseded by later entries. Inspect `git status` and running processes first; preserve existing uncommitted user work and do not start duplicate campaigns or downloads.
+
+## Important source and data locations
+
+- `app.py`: default full engineering Streamlit dashboard; `engineering_app.py` implements it. `meeting_app.py` opens the separate concise meeting view; `simulator/` contains the models.
+- `notebooks/TreeVibes_Three_Track_Training.ipynb`: data curation, grouped split, training and final-evaluation gates. `scripts/acoustic_validity_audit.py`, `scripts/review_audio_pairs.py`, and `scripts/acoustic_noise_sensitivity.py` are development diagnostics.
+- `docs/ACOUSTIC_DATA_AUDIT.md`: current evidence, detailed limitations, per-source results, and collection plan. `docs/ACOUSTIC_TEST_PROTOCOL.md` is the physical playback protocol; `docs/HARDWARE_BASELINE.md` describes the hardware.
+- On the current Windows PC, the original TreeVibes v1 dataset is under `%USERPROFILE%\.cache\kagglehub\datasets\potamitis\treevibes\versions\1` (58,797 WAVs plus workbook). The existing real-data campaign is under `outputs/real-training-cuda/full/treevibes-984e68c4e99668c8/`; the run contains the locked manifest/split, predictions, candidates and review template. Additional audit outputs are under `outputs/acoustic-validity-audit/`. The prior public reference checkout is `outputs/reference-ml-for-senior/` if present.
+- **Transfer warning:** `/outputs/`, datasets, model weights, feature caches and virtual environments are generally Git-ignored. The audit documentation, scripts, notebook modifications, meeting entry point, tests and selected small status/split-evidence files are included in this handoff commit. A friend cloning the repository will not receive uncommitted work or ignored artifacts automatically. Inspect `git status` and arrange an authorized transfer or commit of required files; do not assume a clone has the data, model, split lock or results. Never publish private data or credentials.
+
+## Acoustic validity and final-holdout rules
+
+- The completed CUDA full campaign recorded 950 successful trials and no trial failures. Its CNN validation result was 495/774 positive detections and 14/292 false positives (63.95% recall, 4.79% FPR). An exploratory validation-selected CNN/AST blend gave 554/774 and 13/292. These are heavily reused validation results, not independent test performance, field reliability or confirmed red palm weevil identification. Do not keep tuning against this validation set as though it were fresh.
+- The original training split has three components, each containing just one weak label; only one training component is negative. Class and source are confounded. Labels originate from folder-level human listening, not individually verified species/infestation labels. The original paper describes a separate `CONFIRMATION` inspection field; it does not supply complete per-clip verification or recording ancestry. A folder is not automatically a verified tree or session.
+- **Preserve the final holdout:** do not load its audio/features for model development, evaluate it, inspect model scores/errors, change the existing locked split or manufacture lineage sign-off. Review ancestry without holdout model outputs; freeze a justified selection and threshold and follow the notebook's one-time final-evaluation gate only after evidence-backed review. If corrected relationships require a different split, retire the old split and create a new manifest/campaign; do not overwrite the existing lock. No final holdout marker was present at last check.
+- 89 development near-duplicate pairs remain unreviewed, 65 across train/validation. All 65 were checked with hashes, metadata and normalized waveform alignment for overlaps of at least five seconds: no direct/shifted/gain-scaled duplicate was confirmed, but shorter, transformed or shared-parent relationships remain unresolved. Do not declare them cleared. The earlier manifest incorrectly hashed `NA` coordinates as a site; the notebook now treats missing/non-numeric/out-of-range coordinates as unknown. The corrected notebook can group supplied tree, session, device, site, parent and reviewed duplicate-group IDs transitively; never invent IDs or equate missing metadata with independence.
+- On a fixed 125-recording validation subset, 10 dB synthetic white noise changed 68 frozen-CNN decisions; positive detections fell from 69/110 to 4/110. This is a stress test, not a natural-noise field estimate. Historical ML-for-Senior 98.17% recall / 5.56% FPR used a different protocol and was not reproduced here.
+- Do not retrain merely to chase better scores. Original collection/inspection and parent/session logs and independently verified recordings from multiple trees/sites/devices with both classes and balanced noise conditions are needed. The audit proposes at least 10 positive and 10 negative target-host trees across three sites as an initial pilot, not proof of deployment readiness; species-specific claims need species confirmation. Reserve independent sites for future evaluation.
+
+## Setup and verification
+
+PowerShell on this PC:
+
+```powershell
+$env:PYTHONUTF8 = '1'
+.\.venv\Scripts\python.exe -m streamlit run app.py --server.address 127.0.0.1
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check app.py engineering_app.py meeting_app.py simulator tests scripts
+```
+
+Use `meeting_app.py` instead of `app.py` for the meeting view. The last complete verification reported 95 tests passing; scoped application/scripts lint passed. Repository-wide Ruff also reports existing notebook style violations. Re-run appropriate checks after changes; do not assert they still pass without running them.
+
+For GPU diagnostics on this specific computer, CUDA-enabled PyTorch is installed separately in `outputs/torch-cu121` and the GPU is an RTX 2070. Set `$env:PYTHONPATH = (Resolve-Path outputs/torch-cu121).Path` and check `torch.cuda.is_available()` before assuming GPU availability. That ignored folder may not exist on another PC. See the notebook and `docs/DEVICE_HANDOFF.md` for installing additional audio/training dependencies; a synthetic smoke run is a software check only.
+
+If the requested work is blocked by missing evidence or data, state exactly what is missing and the next action; do not fabricate labels, grouping, tests, measurements or outcomes. Record meaningful progress and recovery steps in the audit/status files.

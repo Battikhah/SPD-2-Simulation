@@ -35,10 +35,9 @@ establish RF, firmware or hardware performance.
 
 ## Use
 
-The meeting view has three blocks: node operation, estimated battery life, and
+The optional meeting view (`meeting_app.py`) has three blocks: node operation, estimated battery life, and
 the cluster-head timing limit. Open **Scenario** to change area, density, head
-count, or recording duration. The engineering dashboard remains available as a
-separate entry point for detailed research and model controls.
+count, or recording duration. The default `app.py` entry point opens the engineering dashboard for detailed research and model controls.
 
 The default cloud-classification design assumes a Pololu S7V8F3 3.3 V regulator
 in the final circuit. The Pololu is planned, not purchased. The default sleep
@@ -129,3 +128,9 @@ resources, compiled TFLM arena/operator allocation, ESP32 current waveforms,
 recording-buffer strategy, battery discharge and solar yield all require validation.
 The simulator does not predict classifier recall, false alarms or pest-detection
 accuracy from parameter count. Those metrics require a labeled acoustic evaluation.
+
+The concise meeting overview remains available as a separate entry point:
+
+```sh
+.venv/bin/python -m streamlit run meeting_app.py
+```

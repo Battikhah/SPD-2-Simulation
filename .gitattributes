@@ -1,0 +1,2 @@
+# Split hashes are byte-sensitive; preserve the original CSV bytes across checkouts.
+outputs/real-training-cuda/full/treevibes-984e68c4e99668c8/splits.csv -text whitespace=cr-at-eol

@@ -1,0 +1,60 @@
+{
+  "source_only_unseen_components_fallback": {
+    "tn": 0,
+    "fp": 292,
+    "fn": 0,
+    "tp": 774,
+    "recall": 1.0,
+    "fpr": 1.0,
+    "precision": 0.726078799249531,
+    "f1": 0.841304347826087
+  },
+  "simple_audio_train_threshold": {
+    "tn": 291,
+    "fp": 1,
+    "fn": 732,
+    "tp": 42,
+    "recall": 0.05426356589147287,
+    "fpr": 0.003424657534246575,
+    "precision": 0.9767441860465116,
+    "f1": 0.10281517747858017
+  },
+  "simple_audio_threshold": 0.7809459566267608,
+  "source_identity_within_train_recordings_accuracy": 0.6343115124153499,
+  "source_identity_within_train_recordings_majority_accuracy": 0.5237020316027088,
+  "source_identity_warning": "Random recording split within same components; descriptive shortcut probe only, not independent generalization.",
+  "label_by_train_component": {
+    "component-000045": {
+      "0": 0,
+      "1": 773
+    },
+    "component-000105": {
+      "0": 0,
+      "1": 20
+    },
+    "component-002154": {
+      "0": 683,
+      "1": 0
+    }
+  },
+  "cnn_validation_selected": {
+    "tn": 278,
+    "fp": 14,
+    "fn": 279,
+    "tp": 495,
+    "recall": 0.6395348837209303,
+    "fpr": 0.04794520547945205,
+    "precision": 0.9724950884086444,
+    "f1": 0.7716289945440374
+  },
+  "blend_validation_selected": {
+    "tn": 279,
+    "fp": 13,
+    "fn": 220,
+    "tp": 554,
+    "recall": 0.7157622739018088,
+    "fpr": 0.04452054794520548,
+    "precision": 0.9770723104056437,
+    "f1": 0.8262490678598061
+  }
+}
