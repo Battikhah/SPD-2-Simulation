@@ -80,6 +80,16 @@ def test_recall_rule_reaches_target_recall_on_selection_data():
     assert ((s >= thr) & (y == 1)).sum() / (y == 1).sum() >= 0.97
 
 
+def test_wav_scorer_refuses_sealed_test_recordings():
+    scorer = pytest.importorskip("score_wavs")
+    sealed = {"field/field/test/folder_29/a.wav"}
+    assert scorer.manifest_keys([campaign.ROOT / "field/field/train/folder_1/b.wav"], sealed) == [
+        "field/field/train/folder_1/b.wav"]
+    assert scorer.manifest_keys([Path("elsewhere.wav").resolve()], sealed) == [None]
+    with pytest.raises(SystemExit, match="refused"):
+        scorer.manifest_keys([campaign.ROOT / "field/field/test/folder_29/a.wav"], sealed)
+
+
 def _c_array(text, name):
     body = re.search(rf"{name}\[[^\]]*\] = \{{(.*?)\}};", text, re.S).group(1)
     return np.array([float(v.rstrip("f")) for v in re.findall(r"[-0-9.e+]+f?", body)])
