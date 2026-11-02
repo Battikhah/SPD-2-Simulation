@@ -2,11 +2,15 @@
 
 Run in the TensorFlow venv after esp32_export.py and logmel_parity_fixtures.py:
   outputs/tf-venv/Scripts/python.exe scripts/gen_esp32_example.py
-Writes model_data.cc/.h (the stream1s_w8 seed0/fold0 int8 model) and fixture.h: one real
-development 1 s window (int16 PCM), its expected int8 model input checksum, and the expected int8
-output from the host TFLite reference-kernel interpreter.
+Writes model_data.cc/.h (by default the stream1s_w8 seed0/fold0 int8 model; --model picks another
+model_int8.tflite, e.g. outputs/esp32-tflm/full-stream1s_w8_d4-pb2.0-lorO/stream1s_w8_d4/model_int8.tflite)
+and fixture.h: one real development 1 s window (int16 PCM), its expected int8 model input checksum, and
+the expected int8 output from the host TFLite reference-kernel interpreter. If the model's input
+quantisation differs from the fixture file's, the stored float log-mel is requantised the way
+logmel_quantize() does on the device (float32 divide and add, round half to even).
 """
 
+import argparse
 import hashlib
 import struct
 import sys
@@ -24,7 +28,9 @@ COUNT = 59 * 64
 
 
 def main():
-    blob = MODEL.read_bytes()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", type=Path, default=MODEL)
+    blob = ap.parse_args().model.read_bytes()
     raw = FIXTURES.read_bytes()
     assert raw[:4] == b"LMEL"
     _, scale, zp = struct.unpack("<ifi", raw[4:16])
@@ -34,7 +40,11 @@ def main():
     it = interpreter(blob)
     it.allocate_tensors()
     i, o = it.get_input_details()[0], it.get_output_details()[0]
-    assert np.isclose(i["quantization"][0], scale) and i["quantization"][1] == zp
+    m_scale, m_zp = i["quantization"]
+    if not (np.isclose(m_scale, scale) and m_zp == zp):
+        logmel = np.frombuffer(raw, "<f4", COUNT, off + 16000)
+        q = np.round(logmel / np.float32(m_scale) + np.float32(m_zp))
+        q_in = np.clip(q, -128, 127).astype(np.int8)
     it.set_tensor(i["index"], q_in.reshape(1, 59, 64, 1))
     it.invoke()
     out_q = int(it.get_tensor(o["index"]).ravel()[0])

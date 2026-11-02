@@ -77,6 +77,34 @@ performance remains **not measured**.
 The underlying TreeVibes paper concerns *X. chinensis* and mulberry rather than a
 confirmed RPW corpus: [TreeVibes paper](https://www.mdpi.com/2624-6511/4/1/17/xml).
 
+## Sensor-chain and confound controls (added 2 November 2026)
+
+The development analysis in `docs/ESP32_DEV_DAY_REPORT.md` found that the current TreeVibes models
+decide almost entirely from the 3–4 kHz band. That band sits just below the 8 kHz recordings' Nyquist
+limit and outside the project's 100–2,500 Hz band. The models also depend on whether the near-Nyquist
+spectrum is flat (recorder noise floor) or rolls off (real vibration energy). Any replay or field test
+must control for this:
+
+1. **Noise floor.** Record the ESP32 sensor chain with no trunk contact and with the sensor on a silent,
+   damped block, using the exact gain and sample rate. Report the spectrum up to Nyquist and its flatness.
+   A model may call any recording "infested" that differs from this floor.
+2. **Passband.** Measure the exciter and amplifier passband up to the acquisition Nyquist (4 kHz at
+   8 kHz). If the replay chain cannot reproduce 3–4 kHz, TreeVibes-trained models are not being tested
+   on the information they use, and replay results say nothing about them.
+3. **Matched negatives.** For every infested palm, record a clean palm at the same site, on the same
+   day and with the same device and mounting. Include urban vibration (traffic, footsteps, children),
+   rain and wind on clean palms. Record which trees were inspected and how.
+4. **Report within-site, within-device metrics** (as `scripts/within_device_eval.py` and
+   `scripts/esp32_report.py` do) next to any pooled score. A pooled score can be won by recognising
+   the recorder or site.
+5. **Hold out whole recorders.** Folder-grouped validation leaks recorder identity. When a recorder's
+   infested folders are in training, its held-out clean folder (TreeVibes folder 24) is scored as
+   infested. When the whole recorder is held out, it is mostly separated. Evaluate a new device with that
+   device's recordings held out.
+6. **Folder 24/25 check.** The TreeVibes "forest, healthy trees" folders 24 and 25 contain longer,
+   more regular transients than the infested recordings. Listen to them before using similar recordings
+   as negatives, and keep their inspection evidence with the recordings.
+
 ## Blank recording log
 
 Fill `docs/acoustic_test_template.csv` with one row per source/recapture trial. Put

@@ -51,6 +51,35 @@ def test_top_k_decisions_matches_device_rule():
     assert out[1] == pytest.approx((0.9 + 0.4) / 2)  # 5 windows -> top round(1.5) = 2
 
 
+def test_input_transforms_hide_high_bands_and_level():
+    esp32_train = pytest.importorskip("esp32_train")
+    rng = np.random.default_rng(2)
+    x = rng.normal(size=(3, 59, 64)).astype("float32")
+    cut = esp32_train.transform(x, max_band=56)
+    assert np.array_equal(cut[..., :56], x[..., :56])
+    assert np.array_equal(cut[..., 56:], np.repeat(x[..., 55:56], 8, axis=-1))
+    assert np.array_equal(esp32_train.transform(x), x)
+    gn = esp32_train.transform(x + 5.0, gain_norm=True)
+    assert np.allclose(gn, esp32_train.transform(x, gain_norm=True), atol=1e-5)  # absolute level removed
+    assert np.allclose(gn.mean(axis=(1, 2)), 0, atol=1e-5)
+
+
+def test_mac_count_matches_hand_calculation():
+    compute = pytest.importorskip("esp32_compute")
+    arch = pytest.importorskip("esp32_arch")
+    # conv 59x64x9x1x8 + conv 29x32x9x8x16 + conv 14x16x9x16x32 + dense 32x16 + logit 16
+    assert compute.macs(arch.CANDIDATES["stream1s_w8"]["spec"], (59, 64)) == 2_373_648
+
+
+def test_recall_rule_reaches_target_recall_on_selection_data():
+    study = pytest.importorskip("threshold_rules_study")
+    rng = np.random.default_rng(3)
+    y = rng.integers(0, 2, 500)
+    s = rng.normal(y * 1.5, 1.0)
+    thr = study.rule_threshold(y, s, np.zeros(500), "recall97", rng)
+    assert ((s >= thr) & (y == 1)).sum() / (y == 1).sum() >= 0.97
+
+
 def _c_array(text, name):
     body = re.search(rf"{name}\[[^\]]*\] = \{{(.*?)\}};", text, re.S).group(1)
     return np.array([float(v.rstrip("f")) for v in re.findall(r"[-0-9.e+]+f?", body)])

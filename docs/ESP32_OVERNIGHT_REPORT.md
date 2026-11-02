@@ -1,5 +1,10 @@
 # ESP32 overnight sweep: report (1–2 November 2026)
 
+> **Update, 2 November afternoon:** see `docs/ESP32_DEV_DAY_REPORT.md`. The figures below use folder-grouped
+> folds, which leak recorder identity. On this dataset the models mostly use the 3–4 kHz band, loudness and
+> recorder or site differences. Use the recorder-held-out results and the 97%-recall threshold rule from
+> that report instead. The recommendation below is superseded.
+
 Read this first. Details are in `docs/ESP32_TFLM_PLAN.md`; raw numbers are in `outputs/esp32-tflm/sweep/leaderboard.csv` and `report_tables.md` (git-ignored, on the training PC).
 
 ## TL;DR

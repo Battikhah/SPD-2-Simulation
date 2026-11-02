@@ -64,4 +64,30 @@ For GPU diagnostics on this specific computer, CUDA-enabled PyTorch is installed
   - `esp32_report.py` averages seed scores in float32 to match `esp32_export.py` tie-breaking.
   - Do not keep tuning on this development set; the next steps are on-board measurement and new same-device clean recordings.
 
+- **2 November 2026 (dev day: what the models detect).** Report: `docs/ESP32_DEV_DAY_REPORT.md`. Working notes: `outputs/dev-day/NOTES.md` (ignored). All development data; the test split was never read.
+  - **What the CNNs use.** They decide from the 3–4 kHz band, which sits just under Nyquist. Training on mel bands 56–63 alone matches all bands; without them AUC is about 0.6. Loudness also matters.
+  - **A trivial rule matches them.** The near-Nyquist roll-off (`rolloff_check.py`) alone gives F1 0.965.
+  - **Confounds** (`TreeVibes.xlsx`):
+    - Recorder IMEI …8409 recorded only clean folders 7 and 9.
+    - Folder 9 is the recorder's white noise floor.
+    - Infested folders are all urban palms.
+  - **Folder-grouped folds leak recorder identity.** The clean folder 24 is "failed" because the same recorder's infested folders are in training.
+  - **Evaluate with `esp32_train.py --folds recorder`.** The fold ids are saved in `train_info.json` because the TF venv has no openpyxl, and `esp32_export.py` reads them.
+  - **New training options:** `--max-band`, `--min-band`, `--gain-norm`, `--exclude-train-folders`.
+  - **New diagnostics:**
+    - `folder_diagnostics.py`
+    - `click_feature_cv.py`
+    - `band_occlusion.py`
+    - `rolloff_check.py`
+    - `within_device_eval.py`
+    - `threshold_rules_study.py`
+    - `noise_stress.py`
+    - `esp32_compute.py`
+  - **Reporting.** `esp32_report.py` prints within-recorder AUC.
+  - **Threshold rule.** Use 97% training recall.
+  - **Single model.** Deploy one model, not an ensemble.
+  - **Firmware.** `gen_esp32_example.py --model` can embed another model and requantises the fixture.
+  - **Per-device calibration.** A threshold transferred from other recorders flags all healthy trees on some devices. Calibrate each device on known-healthy trees (`device_calibration.py`).
+  - **Current recommendation:** single int8 `stream1s_w8_d4` pb2, folder-balanced (p=0.5), calibrated at the 90th percentile of healthy-tree scores. It reaches about 86–90% recall at 14–15% false alarms on unseen recorders. These figures are rough and site-confounded.
+
 If the requested work is blocked by missing evidence or data, state exactly what is missing and the next action; do not fabricate labels, grouping, tests, measurements or outcomes. Record meaningful progress and recovery steps in the audit/status files.

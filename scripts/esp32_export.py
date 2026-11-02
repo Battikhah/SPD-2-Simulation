@@ -159,7 +159,13 @@ def main():
     root = run_root(a.smoke, a.tag)
     df, groups = dev_frame(a.smoke)
     y, n = df.label.to_numpy(), len(df)
-    folds = list(GroupKFold(5).split(y, y, groups))
+    info = root / "train_info.json"
+    info = json.loads(info.read_text()) if info.exists() else {}
+    if info.get("fold_of_recording"):  # non-default folds (e.g. leave-one-recorder-out) saved by training
+        fold_of = np.array(info["fold_of_recording"])
+        folds = [(np.flatnonzero(fold_of != k), np.flatnonzero(fold_of == k)) for k in range(fold_of.max() + 1)]
+    else:
+        folds = list(GroupKFold(5).split(y, y, groups))
     oof_float = pd.read_csv(root / "oof_float.csv")
     assert list(oof_float.path) == list(df.path)
     if a.metrics_only:
@@ -171,11 +177,12 @@ def main():
 
     tf.get_logger().setLevel("ERROR")
     seeds = sorted({int(c.split("seed")[1]) for c in oof_float.columns if "|seed" in c})
+    max_band, gain_norm, min_band = info.get("max_band", 64), info.get("gain_norm", False), info.get("min_band", 0)
     oof8, device = oof_float[["path", "folder", "label"]].copy(), {}
     for name, cfg in CANDIDATES.items():
         if f"{name}|seed{seeds[0]}" not in oof_float:
             continue
-        X, rid = units(name, df, a.smoke)
+        X, rid = units(name, df, a.smoke, max_band, gain_norm, min_band)
         for s in seeds:
             float_scores, int8_scores = np.zeros(len(X)), np.zeros(len(X))
             for k, (tr, te) in enumerate(folds):

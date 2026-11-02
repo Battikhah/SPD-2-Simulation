@@ -24,6 +24,11 @@ CANDIDATES = {
     "stream1s_ds": dict(input=(59, 64), unit="window", spec=[
         ("conv", 16, 3, 1), ("pool",), ("dw", 32, 3, False), ("dw", 32, 3, True), ("pool",),
         ("dw", 64, 3, False), ("dw", 64, 3, True), ("gap",), ("logit",)]),
+    # Ablation: stream1s_w8 with the stride-2 stem the 10 s models need, to test whether early loss of
+    # time-frequency resolution (not input length) is what makes the 10 s models worse.
+    "stream1s_w8_s2": dict(input=(59, 64), unit="window", spec=[
+        ("conv", 8, 3, 2), ("pool",), ("conv", 16, 3, 1), ("pool",), ("conv", 32, 3, 1), ("gap",),
+        ("dense", 16), ("logit",)]),
     # 10.24 s segments (320x64) with a stride-2 stem so the first activation is 160x32.
     "strided10s_w4": dict(input=(320, 64), unit="segment", spec=[
         ("conv", 4, 3, 2), ("pool",), ("conv", 16, 3, 1), ("pool",), ("conv", 32, 3, 1), ("pool",),

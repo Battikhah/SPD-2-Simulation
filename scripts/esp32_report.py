@@ -31,6 +31,12 @@ def label(r):
         extra.append(f"KD {r.teacher}" + (f" a={r.alpha:g}" if pd.notna(r.alpha) else ""))
     if r.balance_folders:
         extra.append(f"folder-balanced p={r.balance_folders:g}")
+    if getattr(r, "max_band", 64) < 64:
+        extra.append(f"mel bands < {int(r.max_band)}")
+    if getattr(r, "min_band", 0) > 0:
+        extra.append(f"mel bands >= {int(r.min_band)}")
+    if getattr(r, "gain_norm", False):
+        extra.append("gain-normalised")
     if pd.notna(r.epochs) and r.epochs:
         extra.append(f"{int(r.epochs)} ep")
     if r.seeds and r.seeds != "0-1-2":
@@ -71,6 +77,27 @@ def fp_by_folder(best, rule="f2"):
     return out
 
 
+def within_recorder(rows, top=12):
+    """ROC-AUC inside each recorder that captured both classes (IMEI from TreeVibes.xlsx). Recorder 8409
+    captured only clean folders 7 and 9, so the all-data AUC can be won by recognising the device."""
+    import numpy as np
+    from grouped_cv_campaign import ROOT
+    from sklearn.metrics import roc_auc_score
+
+    meta = pd.read_excel(ROOT / "TreeVibes.xlsx", dtype={"IMEI": str})
+    device = dict(zip(meta.FOLDER, meta.IMEI.str[-4:]))
+    out = ["| Configuration | All data | Recorder 7260 (clean 8) | Recorder 2538 (clean 24) | "
+           "Recorder 8391 (clean 25) |", "| --- | ---: | ---: | ---: | ---: |"]
+    for r in rows.head(top).itertuples():
+        oof = pd.read_csv(Path("outputs/esp32-tflm") / r.directory / "oof_int8.csv")
+        base = r.arch + ("@top3of10" if r.aggregation == "top3of10" else "")
+        s = oof[[c for c in oof.columns if c.startswith(base + "|seed")]].astype("float32").mean(1).to_numpy()
+        y, dev = oof.label.to_numpy(), np.array([device[f] for f in oof.folder])
+        cells = [f"{roc_auc_score(y[dev == d], s[dev == d]):.3f}" for d in ("7260", "2538", "8391")]
+        out.append(f"| {r.config} | {r.roc_auc:.3f} | " + " | ".join(cells) + " |")
+    return out
+
+
 def main():
     board = esp32_sweep.leaderboard()
     int8 = board[board.arithmetic == "int8"].copy()
@@ -106,6 +133,9 @@ def main():
             lines.append(f"| {rule} | {r['arithmetic']} | {pct(rec)} | {pct(prec)} | {pct(fpr)} | {f1:.3f} | "
                          f"{pct(field_precision(rec, fpr, 0.20))} | {pct(field_precision(rec, fpr, 0.05))} |")
     lines += ["", f"## Where the false alarms come from ({best.config}, int8, F2 rule)", ""] + fp_by_folder(best)
+    lines += ["", "## Within-recorder ROC-AUC (top configurations; 0.5 = chance)", "",
+              "Each recorder's clean set is a single folder. A model that has learned infestation rather than "
+              "device or site should stay well above 0.5 in every column.", ""] + within_recorder(ens)
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
 

@@ -60,6 +60,20 @@ The full write-up is in `docs/ESP32_OVERNIGHT_REPORT.md`. The sweep driver is `s
 - pos_boost 0.5, top-3-of-10 aggregation and distillation gave no gain that replicated. Folder balancing helped only at the FPR≤10% point.
 - Same-device folders 24/25 are still flagged 100% of the time.
 
+## Dev day (2 November 2026)
+
+The full write-up is in `docs/ESP32_DEV_DAY_REPORT.md`.
+
+- **What the models use:** the 3–4 kHz band carries all the skill (top 8 bands alone: AUC 0.94; without them: 0.60). One untrained near-Nyquist roll-off number gives F1 0.965.
+- **The data is confounded:**
+  - Recorder 8409 recorded only clean trees, and folder 9 (528 recordings) is the recorder's own noise.
+  - Every infested folder is an urban palm.
+- **Folder-grouped folds leak recorder identity.** Evaluate with `esp32_train.py --folds recorder` (leave one recorder out).
+- **Threshold rule:** use the threshold that reaches 97% recall on the training folds (`threshold_rules_study.py`).
+- **Single model, not an ensemble:** the 3-model ensemble gains only +0.005 F1 for three times the compute.
+- **Under recorder hold-out, thresholds do not transfer between devices**, so calibrate per device on known-healthy trees (90th percentile).
+- **Recommendation:** single int8 stream1s_w8_d4 pb2, folder-balanced p = 0.5. It has a 37 KiB arena and 34 M MACs per 10 s. With per-device calibration it reaches 86–90% recall at 14–15% healthy-tree false alarms on unseen recorders, replicated on two seed sets. Site and activity remain confounded.
+
 ## User assumptions (recorded 1 November 2026)
 
 1. Clean recordings from other tree species are acceptable negatives, because the user considers their water content and wood density similar to palm.

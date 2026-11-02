@@ -122,6 +122,8 @@ def leaderboard():
             rows.append(dict(directory=d.name, arch=arch, pos_boost=pb, teacher=info.get("teacher") or "",
                              alpha=info.get("alpha"), epochs=info.get("epochs"),
                              balance_folders=info.get("balance_folders") or 0.0,
+                             max_band=info.get("max_band") or 64, gain_norm=bool(info.get("gain_norm")),
+                             min_band=info.get("min_band") or 0,
                              seeds="-".join(map(str, info.get("seeds", []))),
                              aggregation="top3of10" if "@top3of10" in base else "mean", variant=variant,
                              int8_tflite_bytes=dev.get(arch, {}).get("int8_tflite_bytes"),

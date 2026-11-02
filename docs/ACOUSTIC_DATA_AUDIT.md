@@ -95,3 +95,34 @@ Whole-clip pooling is a real improvement for the 30×13 MFCC track (AUC 0.52 →
 | C | 10 s CNN w4 d4 | 6,537 | 0.919 (0.90–0.92) | 79.5% / 10.7% / 83.3% / 0.85 | 63.1% | 0.94 / 0.77 |
 
 10 s inputs perform about the same as 1 s windows (AUC 0.95) and the full 20 s clip (0.92); the context length is not what limits performance. A 6.5k-parameter 10 s model is within about 0.01 AUC of the 405k one. The same-device negative folder 24 is still scored as infested (within-device AUC 0.10–0.62), so the confounding caveat above applies unchanged. These are optimistic pooled-OOF operating points on development data, not final-test results.
+
+## Mechanism of the confound (2 November 2026)
+
+Details are in `docs/ESP32_DEV_DAY_REPORT.md`. All of this uses development data; the test split was not read.
+
+**What the ESP32-sized CNNs use**
+
+- **The 3–4 kHz band carries the decision.** Trained on mel bands 56–63 alone (3.0–4.0 kHz), stream1s_w16 scores AUC 0.94. Without those bands it scores 0.60; stream1s_w8 scores 0.49–0.57.
+- **One untrained number matches the CNNs.** It is the spectral roll-off between 3.5–3.8 and 3.8–4.0 kHz. Used as a score with a cross-fitted threshold, it gives F1 0.965 and AUC 0.951.
+- **What the roll-off means.** A flat spectrum up to Nyquist is the converter noise floor. A roll-off means real vibration passed the anti-aliasing filter.
+- **Clean folder 9 is silence.** It holds 528 of the 975 negatives, and its spectral flatness is 0.994: the recorder's own white noise.
+
+**TreeVibes.xlsx confounds**
+
+- **Clean-only recorder.** IMEI …8409 recorded only clean folders 7 and 9.
+- **Urban infested trees.** Every infested folder is an urban palm.
+- **Different clean sites.** The clean folders are other tree species or "forest, healthy trees" (24, 25), mostly recorded in February.
+- **Unconfirmed infested folders.** Folders 3, 4, 18, 22 and 23 have CONFIRMATION = NO.
+
+**Folder-grouped folds leak recorder identity**
+
+- **Folder 24 inherits its recorder's label.** Its own recorder's infested folders stay in training, so a held-out clean folder like 24 is scored as infested.
+- **Within-recorder AUC, w8:** 0.287 for recorder 2538 under folder folds, against 0.854 when the whole recorder is held out (`esp32_train.py --folds recorder`).
+- **Never training on recorder 8409** (folders 7 and 9) drops w8 to AUC 0.71.
+- **Removing either folder alone barely matters**, because the other folder from the same recorder still teaches the model that recorder's sound.
+
+**Implications**
+
+- Report recorder-held-out and within-recorder metrics.
+- Site and activity level remain confounded within each recorder.
+- New recordings must include clean palms at the same urban sites, recorded with the same devices, plus the ESP32 sensor chain's own noise floor.

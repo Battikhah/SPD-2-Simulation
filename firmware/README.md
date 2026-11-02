@@ -39,4 +39,19 @@ idf.py build size
 idf.py -p <PORT> flash monitor
 ```
 
+### Embedding the 2 November recommendation
+
+`docs/ESP32_DEV_DAY_REPORT.md` recommends stream1s_w8_d4, folder-balanced, with a threshold calibrated per device on known-healthy trees. To embed it instead of stream1s_w8:
+
+```powershell
+outputs\tf-venv\Scripts\python.exe scripts\gen_esp32_example.py --model outputs\esp32-tflm\full-stream1s_w8_d4-pb2.0-lorO-bal0.5\stream1s_w8_d4\model_int8.tflite
+```
+
+- The model is 35,344 B, with a 37 KiB arena lower bound, so it fits the 64 KiB `kArenaSize`.
+- It uses the same 7 ops.
+- Its input quantisation is slightly different (scale 0.09458, zero point 115). The generator requantises the fixture and the device reads the scale from the tensor.
+- It is still a single fold model (recorder fold 0), not a model fitted on all development data.
+
+**Calibration.** In the field, run the device on known-healthy trees first, then set the alarm threshold at the 90th percentile of their 10 s scores. Thresholds from other recorders flag everything on some devices.
+
 Only a successful build and board run can establish operator support, arena allocation, latency, energy and flash/RAM fit. The complete sensing application also needs I2S/ADC capture, power management and LoRa buffers.
