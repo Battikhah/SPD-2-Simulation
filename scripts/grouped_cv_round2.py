@@ -50,9 +50,14 @@ def uncapped(y, s):
 
 
 def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, batch=512, pos_boost=1.0,
-          keep=None):
+          keep=None, soft=None, alpha=0.5, predict_all=None, unit_groups=None, balance_power=0.0):
     """`pos_boost` scales the class-balance positive weight; `keep` (a list) receives each fold's
-    (numpy state dict, mu, sd) for export."""
+    (numpy state dict, mu, sd) for export. Distillation: `soft[k]` holds fold-k teacher probabilities
+    for every unit, and the target becomes alpha * label + (1 - alpha) * teacher (class weights still
+    follow the hard label). `predict_all` (a list) receives each fold model's probabilities on all units.
+    Group balancing: with `unit_groups` and `balance_power` p > 0, each training unit is weighted by
+    count(its group)^-p, rescaled so every class keeps its total weight (p = 1: every training folder of
+    a class contributes equally; p = 0.5: square-root compromise). Uses training-fold groups only."""
     import torch
 
     window_p = np.zeros(len(wy))
@@ -66,6 +71,18 @@ def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, ba
         opt = torch.optim.AdamW(net.parameters(), 2e-3, weight_decay=1e-2)
         xt = torch.tensor((X[trw] - mu) / sd, dtype=torch.float32, device=device).unsqueeze(1)
         yt = torch.tensor(wy[trw], dtype=torch.float32, device=device)
+        tt = yt if soft is None else torch.tensor(alpha * wy[trw] + (1 - alpha) * soft[k][trw],
+                                                  dtype=torch.float32, device=device)
+        uw = None
+        if unit_groups is not None and balance_power > 0:
+            g_tr, y_tr = unit_groups[trw], wy[trw]
+            _, inverse, counts = np.unique(g_tr, return_inverse=True, return_counts=True)
+            raw = counts[inverse].astype(np.float64) ** -balance_power
+            for c in (0, 1):
+                m = y_tr == c
+                if m.any():
+                    raw[m] *= m.sum() / raw[m].sum()
+            uw = torch.tensor(raw, dtype=torch.float32, device=device)
         steps = epochs * int(np.ceil(len(xt) / batch))
         sched = torch.optim.lr_scheduler.OneCycleLR(opt, 2e-3, total_steps=steps)
         scaler = torch.amp.GradScaler("cuda")
@@ -76,7 +93,7 @@ def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, ba
         for _ in range(epochs):
             net.train()
             for idx in torch.randperm(len(xt), generator=g, device=device).split(batch):
-                xb, yb = xt[idx].clone(), yt[idx]
+                xb, yb, tb = xt[idx].clone(), yt[idx], tt[idx]
                 if specaug:  # one time mask and one frequency mask per example
                     b = len(xb)
                     t0 = torch.randint(0, T, (b, 1), device=device)
@@ -89,15 +106,17 @@ def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, ba
                     xb = xb.masked_fill(tm[:, None, :, None] | fm[:, None, None, :], 0.0)
                 xb = xb + 0.05 * torch.randn_like(xb)
                 w = torch.where(yb == 1, pw, torch.ones_like(yb))
+                if uw is not None:
+                    w = w * uw[idx]
                 if mixup:
                     lam = float(rng.beta(0.4, 0.4))
                     perm = torch.randperm(len(xb), device=device)
                     xb = lam * xb + (1 - lam) * xb[perm]
-                    yb = lam * yb + (1 - lam) * yb[perm]
+                    tb = lam * tb + (1 - lam) * tb[perm]
                     w = lam * w + (1 - lam) * w[perm]
                 with torch.autocast("cuda", dtype=torch.float16):
                     logits = net(xb).squeeze(1).float()
-                loss = (torch.nn.functional.binary_cross_entropy_with_logits(logits, yb, reduction="none") * w).mean()
+                loss = (torch.nn.functional.binary_cross_entropy_with_logits(logits, tb, reduction="none") * w).mean()
                 opt.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
                 scaler.step(opt)
@@ -110,7 +129,13 @@ def train(build, X, wy, wrid, folds, n, epochs, device, seed, specaug, mixup, ba
             window_p[tew] = torch.cat([torch.sigmoid(net(b).float()).squeeze(1) for b in xe.split(max(batch * 4, 1))]).cpu().numpy()
         if keep is not None:
             keep.append(({k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}, float(mu), float(sd)))
-        del xt, yt, xe
+        if predict_all is not None:
+            with torch.no_grad():
+                predict_all.append(np.concatenate([
+                    torch.sigmoid(net(torch.tensor((X[i:i + 4096] - mu) / sd, dtype=torch.float32,
+                                                   device=device).unsqueeze(1)).float()).squeeze(1).cpu().numpy()
+                    for i in range(0, len(X), 4096)]))
+        del xt, yt, tt, xe
         torch.cuda.empty_cache()
     return window_p, params
 

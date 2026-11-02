@@ -20,7 +20,7 @@ from sklearn.model_selection import GroupKFold
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from esp32_arch import CANDIDATES, keras_model  # noqa: E402
-from esp32_train import EXPORT, dev_frame, units  # noqa: E402
+from esp32_train import dev_frame, run_root, units  # noqa: E402
 
 TFLM_OPS = {"CONV_2D", "DEPTHWISE_CONV_2D", "MAX_POOL_2D", "MEAN", "FULLY_CONNECTED", "ADD", "LOGISTIC", "PAD",
             "MUL", "RESHAPE", "QUANTIZE", "DEQUANTIZE", "AVERAGE_POOL_2D", "SUB"}
@@ -94,48 +94,84 @@ def c_array(blob, name):
             f"alignas(16) const unsigned char {name}[] = {{{body}}};\nconst unsigned int {name}_len = {len(blob)};\n")
 
 
-def crossfit(y, s, folds):
-    """Threshold per held-out fold chosen on the other folds: F2-optimal and precision-floor rules."""
+def _fbeta(prec, rec, beta):
+    return (1 + beta**2) * prec * rec / np.maximum(beta**2 * prec + rec, 1e-12)
+
+
+# Each rule scores every candidate threshold on the *other* folds; the best threshold (ties: the
+# highest, i.e. fewest alarms) is then applied unchanged to the held-out fold.
+RULES = {
+    "f2": lambda prec, rec, fpr: _fbeta(prec, rec, 2.0),
+    "f1": lambda prec, rec, fpr: _fbeta(prec, rec, 1.0),
+    "f0.5": lambda prec, rec, fpr: _fbeta(prec, rec, 0.5),
+    "fpr10": lambda prec, rec, fpr: np.where(fpr <= 0.10, rec, -1.0),
+    "precision_floor": lambda prec, rec, fpr: np.where(prec >= PRECISION_FLOOR, rec, -1.0),
+}
+
+
+def choose_threshold(y, s, rule):
+    order = np.argsort(-s, kind="mergesort")
+    ss, ys = s[order], y[order]
+    last = np.r_[ss[1:] != ss[:-1], True]  # last position of each distinct score
+    tp, fp, thr = np.cumsum(ys)[last], np.cumsum(1 - ys)[last], ss[last]
+    rec, prec, fpr = tp / max(ys.sum(), 1), tp / np.maximum(tp + fp, 1), fp / max((1 - ys).sum(), 1)
+    return thr[int(np.argmax(RULES[rule](prec, rec, fpr)))]
+
+
+def crossfit(y, s, folds, rules=RULES):
+    """Cross-fitted operating points: per held-out fold, threshold chosen on the other folds only."""
     res = {}
-    for rule in ("f2", "precision_floor"):
+    for rule in rules:
         pred = np.zeros(len(y), bool)
         for tr, te in folds:
-            yt, st = y[tr], s[tr]
-            cands = np.unique(st)
-            best, best_thr = -1, cands[-1]
-            for thr in cands:
-                p = st >= thr
-                tp, fp = (p & (yt == 1)).sum(), (p & (yt == 0)).sum()
-                rec, prec = tp / max((yt == 1).sum(), 1), tp / max(tp + fp, 1)
-                if rule == "f2":
-                    val = 5 * prec * rec / max(4 * prec + rec, 1e-12)
-                else:
-                    val = rec if prec >= PRECISION_FLOOR else -1
-                if val > best:
-                    best, best_thr = val, thr
-            pred[te] = s[te] >= best_thr
-        tp, fp = (pred & (y == 1)).sum(), (pred & (y == 0)).sum()
+            pred[te] = s[te] >= choose_threshold(y[tr], s[tr], rule)
+        tp, fp = int((pred & (y == 1)).sum()), int((pred & (y == 0)).sum())
         rec, prec = tp / (y == 1).sum(), tp / max(tp + fp, 1)
         res |= {f"{rule}_recall": rec, f"{rule}_precision": prec, f"{rule}_fpr": fp / (y == 0).sum(),
-                f"{rule}_f1": 2 * prec * rec / max(prec + rec, 1e-12)}
+                f"{rule}_f1": 2 * prec * rec / max(prec + rec, 1e-12), f"{rule}_tp": tp, f"{rule}_fp": fp}
     return res
+
+
+def metric_rows(oof8, oof_float, y, folds):
+    rows = []
+    for name in sorted({c.split("|")[0] for c in oof8.columns if "|" in c}):
+        cols = [c for c in oof8.columns if c.startswith(name + "|seed")]
+        if len(cols) > 1:
+            oof8[f"{name}|ensemble"] = oof8[cols].mean(1)
+            oof_float[f"{name}|ensemble"] = oof_float[cols].mean(1)
+        for col in [c for c in oof8.columns if c.startswith(name + "|")]:
+            for kind, frame in (("int8", oof8), ("float", oof_float)):
+                sc = frame[col].to_numpy()
+                rows.append(dict(model=col, arithmetic=kind, roc_auc=roc_auc_score(y, sc),
+                                 average_precision=average_precision_score(y, sc),
+                                 folder24_mean_score=float(frame.loc[frame.folder == "folder_24", col].mean()))
+                            | crossfit(y, sc, folds))
+    return pd.DataFrame(rows)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--tag", default="", help="read/write outputs/esp32-tflm/full-<tag>/")
+    ap.add_argument("--metrics-only", action="store_true",
+                    help="recompute cross-fitted metrics from saved oof_int8.csv/oof_float.csv (no conversion)")
     a = ap.parse_args()
-    import tensorflow as tf
-
-    tf.get_logger().setLevel("ERROR")
-    root = EXPORT / ("smoke" if a.smoke else "full")
+    root = run_root(a.smoke, a.tag)
     df, groups = dev_frame(a.smoke)
     y, n = df.label.to_numpy(), len(df)
     folds = list(GroupKFold(5).split(y, y, groups))
     oof_float = pd.read_csv(root / "oof_float.csv")
     assert list(oof_float.path) == list(df.path)
+    if a.metrics_only:
+        oof8 = pd.read_csv(root / "oof_int8.csv")
+        assert list(oof8.path) == list(df.path)
+        report(root, metric_rows(oof8, oof_float, y, folds))
+        return
+    import tensorflow as tf
+
+    tf.get_logger().setLevel("ERROR")
     seeds = sorted({int(c.split("seed")[1]) for c in oof_float.columns if "|seed" in c})
-    oof8, rows, device = oof_float[["path", "folder", "label"]].copy(), [], {}
+    oof8, device = oof_float[["path", "folder", "label"]].copy(), {}
     for name, cfg in CANDIDATES.items():
         if f"{name}|seed{seeds[0]}" not in oof_float:
             continue
@@ -168,24 +204,39 @@ def main():
             parity = float(np.abs(rec_float - oof_float[f"{name}|seed{s}"]).max())
             assert parity < 2e-3, f"Keras/PyTorch float mismatch {parity} for {name} seed{s}"
             oof8[f"{name}|seed{s}"] = np.bincount(rid, int8_scores, n) / np.bincount(rid, minlength=n)
+            if cfg["unit"] == "window":  # on-device alternative: mean of the top 3 of each 10 windows
+                oof8[f"{name}@top3of10|seed{s}"] = top_k_decisions(int8_scores, rid, n)
+                oof_float[f"{name}@top3of10|seed{s}"] = top_k_decisions(float_scores, rid, n)
             print(f"{name} seed{s}: float parity {parity:.1e}; int8 AUC "
                   f"{roc_auc_score(y, oof8[f'{name}|seed{s}']):.3f}", flush=True)
-        cols = [f"{name}|seed{s}" for s in seeds]
-        if len(cols) > 1:
-            oof8[f"{name}|ensemble"] = oof8[cols].mean(1)
-            oof_float[f"{name}|ensemble"] = oof_float[cols].mean(1)
-        for col in [c for c in oof8.columns if c.startswith(name + "|")]:
-            for kind, frame in (("int8", oof8), ("float", oof_float)):
-                sc = frame[col].to_numpy()
-                rows.append(dict(model=col, arithmetic=kind, roc_auc=roc_auc_score(y, sc),
-                                 average_precision=average_precision_score(y, sc)) | crossfit(y, sc, folds))
     oof8.to_csv(root / "oof_int8.csv", index=False)
-    res = pd.DataFrame(rows)
-    res.to_csv(root / "results.csv", index=False)
+    oof_float.to_csv(root / "oof_float.csv", index=False)  # adds the float top-k columns
     (root / "device_report.json").write_text(json.dumps(device, indent=1))
-    pd.set_option("display.width", 250)
-    print(res.round(3).to_string(index=False))
     print(json.dumps(device, indent=1))
+    report(root, metric_rows(oof8, oof_float, y, folds))
+
+
+def top_k_decisions(window_scores, rid, n, group=10, k=3):
+    """Recording score as the device would form it: split each recording's consecutive 1 s windows
+    into 10-window (10 s) decisions, score each as the mean of its top 3 windows (top 30% for a
+    shorter final group), and average the decisions."""
+    out = np.zeros(n)
+    bounds = np.r_[0, np.flatnonzero(np.diff(rid)) + 1, len(rid)]
+    for a, b in zip(bounds[:-1], bounds[1:]):
+        v = window_scores[a:b]
+        decisions = []
+        for start in range(0, len(v), group):
+            g = np.sort(v[start:start + group])[::-1]
+            decisions.append(g[:max(1, round(k * len(g) / group))].mean())
+        out[rid[a]] = np.mean(decisions)
+    return out
+
+
+def report(root, res):
+    res.to_csv(root / "results.csv", index=False)
+    pd.set_option("display.width", 250)
+    show = ["model", "arithmetic", "roc_auc"] + [f"{r}_{m}" for r in RULES for m in ("recall", "precision", "fpr")]
+    print(res[show].round(3).to_string(index=False))
 
 
 if __name__ == "__main__":

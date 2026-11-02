@@ -17,3 +17,10 @@ __pycache__/
 *.tflite
 *.h5
 *.keras
+
+# Generated ESP32 example model/fixture (trained artifact + dataset audio)
+firmware/esp32_stream1s/main/generated/
+firmware/esp32_stream1s/build/
+firmware/esp32_stream1s/managed_components/
+firmware/esp32_stream1s/dependencies.lock
+firmware/esp32_stream1s/sdkconfig

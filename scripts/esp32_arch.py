@@ -11,7 +11,26 @@ CANDIDATES = {
     "stream1s_w8": dict(input=(59, 64), unit="window", spec=[
         ("conv", 8, 3, 1), ("pool",), ("conv", 16, 3, 1), ("pool",), ("conv", 32, 3, 1), ("gap",),
         ("dense", 16), ("logit",)]),
+    # Overnight sweep variants of the 1 s family (all well under the ~96 KiB arena target).
+    "stream1s_w4": dict(input=(59, 64), unit="window", spec=[
+        ("conv", 4, 3, 1), ("pool",), ("conv", 8, 3, 1), ("pool",), ("conv", 16, 3, 1), ("gap",),
+        ("dense", 8), ("logit",)]),
+    "stream1s_w16": dict(input=(59, 64), unit="window", spec=[
+        ("conv", 16, 3, 1), ("pool",), ("conv", 32, 3, 1), ("pool",), ("conv", 64, 3, 1), ("gap",),
+        ("dense", 32), ("logit",)]),
+    "stream1s_w8_d4": dict(input=(59, 64), unit="window", spec=[
+        ("conv", 8, 3, 1), ("pool",), ("conv", 16, 3, 1), ("pool",), ("conv", 32, 3, 1), ("pool",),
+        ("conv", 64, 3, 1), ("gap",), ("dense", 16), ("logit",)]),
+    "stream1s_ds": dict(input=(59, 64), unit="window", spec=[
+        ("conv", 16, 3, 1), ("pool",), ("dw", 32, 3, False), ("dw", 32, 3, True), ("pool",),
+        ("dw", 64, 3, False), ("dw", 64, 3, True), ("gap",), ("logit",)]),
     # 10.24 s segments (320x64) with a stride-2 stem so the first activation is 160x32.
+    "strided10s_w4": dict(input=(320, 64), unit="segment", spec=[
+        ("conv", 4, 3, 2), ("pool",), ("conv", 16, 3, 1), ("pool",), ("conv", 32, 3, 1), ("pool",),
+        ("conv", 32, 3, 1), ("gap",), ("dense", 16), ("logit",)]),
+    "dscnn10s_w16": dict(input=(320, 64), unit="segment", spec=[
+        ("conv", 8, 3, 2), ("pool",), ("conv", 16, 3, 1), ("pool",), ("dw", 16, 3, True), ("dw", 16, 3, True),
+        ("pool",), ("dw", 32, 3, False), ("dw", 32, 3, True), ("gap",), ("logit",)]),
     "strided10s_w8": dict(input=(320, 64), unit="segment", spec=[
         ("conv", 8, 3, 2), ("pool",), ("conv", 32, 3, 1), ("pool",), ("conv", 64, 3, 1), ("pool",),
         ("conv", 64, 3, 1), ("gap",), ("dense", 32), ("logit",)]),
@@ -20,6 +39,17 @@ CANDIDATES = {
     "dscnn10s_res": dict(input=(320, 64), unit="segment", spec=[
         ("conv", 8, 3, 2), ("pool",), ("conv", 32, 3, 1), ("pool",), ("dw", 32, 3, True), ("dw", 32, 3, True),
         ("pool",), ("dw", 64, 3, False), ("dw", 64, 3, True), ("gap",), ("logit",)]),
+}
+
+
+# Distillation teachers: larger models trained on the same training folds; never exported to the device.
+TEACHERS = {
+    "teacher1s_w32": dict(input=(59, 64), unit="window", spec=[
+        ("conv", 32, 3, 1), ("pool",), ("conv", 64, 3, 1), ("pool",), ("conv", 128, 3, 1), ("gap",),
+        ("dense", 64), ("logit",)]),
+    "teacher10s_w32": dict(input=(320, 64), unit="segment", spec=[
+        ("conv", 32, 3, 1), ("pool",), ("conv", 64, 3, 1), ("pool",), ("conv", 128, 3, 1), ("pool",),
+        ("conv", 128, 3, 1), ("gap",), ("dense", 64), ("logit",)]),
 }
 
 

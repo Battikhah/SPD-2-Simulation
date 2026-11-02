@@ -41,3 +41,46 @@ Pipeline: `scripts/esp32_train.py` (PyTorch, RTX 2070; 3 seeds × 5 folder-group
 - The F2 operating point flags 23.7% of negative recordings. Precision (87%) depends on this dataset's 61.6% positive prevalence and would be lower at a realistic field prevalence.
 - Every candidate still scores the same-device negative folder 24 as infested (see `docs/ACOUSTIC_DATA_AUDIT.md`).
 - **Still unmeasured:** on-board build, real arena allocation, latency, energy and C log-mel parity. Artifacts are in `outputs/esp32-tflm/full/<candidate>/`: `model_int8.tflite`, `model_data.cc`, `fixture_input_int8.npy`, plus `device_report.json`. They are ready for the ESP-IDF harness in `outputs/reference-ml-for-senior/deployment/esp32` once ESP-IDF and a board are available.
+
+## Overnight sweep (1–2 November 2026)
+
+The full write-up is in `docs/ESP32_OVERNIGHT_REPORT.md`. The sweep driver is `scripts/esp32_sweep.py` and the tables come from `scripts/esp32_report.py`. Summary:
+
+- About 50 int8 configurations were run with no failures.
+- **Recommendation:** `stream1s_w16` pb2 (34.7 KB, 74 KiB arena lower bound, same ops and input quantization as w8). Use the cross-fitted FPR≤10% rule.
+  - Fresh seeds 3–5: 82.5% recall / 91.2% precision / 12.7% FPR.
+  - Selection seeds 0–2: 79.1% / 90.8% / 12.9%.
+- **Fallback when the arena must stay at 64 KiB:** `stream1s_w8` pb1, folder-balanced p=0.5.
+  - Selection seeds: 80.3% / 91.1% / 12.6%.
+  - Fresh seeds: 80.3% / 91.0% / 12.8%.
+  - Unbalanced: 74.2% / 89.7% / 13.6%.
+  - Its AUC gain did not replicate, and its F2 point is worse.
+- The FPR≤10% rule realises 12.6–14.5% FPR on unseen folders for every 1 s model. F2 thresholds swing between 18% and 43% FPR.
+- 10 s-input models (AUC 0.84–0.91) remain worse than 1 s windows averaged over 10 s (up to 0.94).
+- pos_boost 0.5, top-3-of-10 aggregation and distillation gave no gain that replicated. Folder balancing helped only at the FPR≤10% point.
+- Same-device folders 24/25 are still flagged 100% of the time.
+
+## User assumptions (recorded 1 November 2026)
+
+1. Clean recordings from other tree species are acceptable negatives, because the user considers their water content and wood density similar to palm.
+2. All recordings are treated as acoustically comparable; the user checked them.
+
+The same-device folder-24 check is still reported, but host species is not treated as a confound in these results.
+
+## Why precision stays high while FPR is high
+
+Precision = TP / (TP + FP). It depends on how many infested recordings there are relative to clean ones; FPR does not. This development set has 1,567 infested and 975 clean recordings, about 1.6 infested per clean. At the original operating point (recall 98.9%, FPR 23.7%):
+
+- TP = 0.989 × 1,567 ≈ 1,550; FP = 0.237 × 975 ≈ 231. Precision = 1,550 / (1,550 + 231) ≈ **87.0%**.
+- At 20% field prevalence (1 infested per 4 clean), the same recall and FPR give precision = 0.989×0.20 / (0.989×0.20 + 0.237×0.80) ≈ **51.1%**.
+- At 5% prevalence: 0.989×0.05 / (0.989×0.05 + 0.237×0.95) ≈ **18.0%**. Roughly 4 of every 5 alarms would be false.
+
+Reducing FPR, not raising recall, is what improves field precision.
+
+## Embedded log-mel front end (Task 2)
+
+`firmware/logmel/` is a portable C99 implementation of the training log-mel. Its tables are generated from the Python arrays by `scripts/gen_logmel_tables.py`. It runs a 512-point radix-2 FFT with no dependency and streams PCM chunk by chunk with no 1 s or 10 s audio buffer: state is 6,184 B, plus the 3,776 B int8 input written straight into the TFLM tensor.
+
+The host parity test (MSVC 2022) runs 18 windows: 16 real 1 s windows from 8 development clips, plus silence and a full-scale tone. All real windows give int8 inputs identical to Python. Overall, 0.062% of int8 values differ, all by exactly 1 LSB and all on the synthetic full-scale tone. The `logf()` build gives identical parity and is enabled in the ESP-IDF example.
+
+`firmware/esp32_stream1s/` is an unbuilt ESP-IDF example based on the reference harness. Details and commands are in `firmware/README.md`. No on-board result exists.
