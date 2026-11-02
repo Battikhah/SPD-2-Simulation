@@ -1,4 +1,4 @@
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/generated/model_data.cc")
+if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/generated/model_data.cc")  # LIST_DIR: also set during requirement scans
     message(FATAL_ERROR "Run scripts/gen_esp32_example.py to generate main/generated before building")
 endif()
 idf_component_register(SRCS "main.cc" "../../logmel/logmel.c" "generated/model_data.cc"

@@ -1,6 +1,25 @@
 # Firmware: streaming log-mel front end and ESP32 example
 
-Status (1 November 2026): host parity verified with MSVC; **not built or run on an ESP32**. No ESP-IDF toolchain or board was available on the development PC, so on-board arena, latency, energy and flash use are unmeasured.
+Status (2 November 2026): `esp32_stream1s/` with the recommended stream1s_w8_d4 model **built with ESP-IDF v5.3.6 and run on an ESP32-D0WD-V3 board** (results below). Energy and current draw are still unmeasured. Host parity was verified with MSVC on 1 November.
+
+## On-board result (2 November 2026)
+
+Board: ESP32-D0WD-V3 rev 3.1 (CP2102 USB-UART, 4 MB flash used as 2 MB), CPU at the default 160 MHz, `-Os`, esp-tflite-micro 1.3.5, ESP-IDF v5.3.6. Model sha256 `22c373cf…` (stream1s_w8_d4, folder-balanced, recorder fold 0). One run of ten 1 s windows of the real fixture:
+
+| Measurement | Value |
+| --- | ---: |
+| App image (whole firmware incl. model, TFLM, ESP-IDF) | 301,664 B (29% of the 1 MB app partition) |
+| Tensor arena actually used | 40,652 B of 65,536 reserved (host lower bound 37,632 B) |
+| Free internal heap after setup / largest free block | 227,528 B / 110,592 B |
+| Front end (log-mel) per 1 s window | 81.1 ms |
+| Inference per 1 s window | 347.8 ms |
+| Input checksum vs Python | pass |
+| First-window int8 output vs Python reference interpreter | identical (delta 0) |
+| Mean probability over ten windows | 0.9648 (Python: 0.9648) |
+
+So the model fits in flash and RAM, and one 1 s window takes about 0.43 s on one core at 160 MHz, which keeps up with real time. These are single-run timings with no audio capture, LoRa or sleep; power draw and the complete application remain unmeasured.
+
+Build on Windows: install ESP-IDF v5.3.x (`install.ps1 esp32`), dot-source `export.ps1`, then in `esp32_stream1s/` run `idf.py set-target esp32`, `idf.py build` and `idf.py -p COMx flash monitor`. The CP2102 needs the Silicon Labs CP210x Universal Windows Driver.
 
 ## `logmel/` — portable C99 front end
 
@@ -27,7 +46,7 @@ firmware\logmel\test\build_msvc.cmd
 
 Result: 18 windows (16 real 1 s windows from 8 development clips in folders 24, 25, 7, 8, 26, 27, 28 and 30, plus silence and a full-scale 440 Hz tone), streamed in uneven chunks. All 16 real windows give int8 inputs identical to Python, with maximum float error 1.1e-5. The full-scale tone has 42 of 3,776 values 1 LSB off, from float32 FFT error in quiet bins next to a very loud tone; the double build reduces this to 5. Overall 0.062% of int8 values differ and none by more than 1 LSB. Max absolute float error is 2.9e-2 (tone) and the mean is 5.8e-5.
 
-## `esp32_stream1s/` — ESP-IDF example (unbuilt)
+## `esp32_stream1s/` — ESP-IDF example
 
 This example is derived from the ML-for-Senior benchmark harness (`deployment/esp32`, esp-tflite-micro 1.3.5, ESP-IDF 5.3–6.0). It streams a real 1 s fixture ten times, in 160-sample chunks, through `logmel_push` directly into the int8 input tensor. It runs `stream1s_w8` on each window and averages ten probabilities into one 10 s score. It reports a JSON line with the input checksum check, the fixture output delta, per-window front-end and inference time, `arena_used_bytes` and heap. It deliberately applies no decision threshold, because no final model or threshold has been frozen; it also uses one fold model (seed 0, fold 0), not the 3-seed ensemble.
 
