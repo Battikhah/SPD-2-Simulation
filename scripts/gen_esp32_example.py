@@ -1,4 +1,4 @@
-"""Fill firmware/esp32_stream1s/main/generated/ (git-ignored) for the ESP-IDF example.
+"""Fill firmware/esp32_stream1s/main/generated/ (committed; regenerate to embed another model) for the ESP-IDF example.
 
 Run in the TensorFlow venv after esp32_export.py and logmel_parity_fixtures.py:
   outputs/tf-venv/Scripts/python.exe scripts/gen_esp32_example.py

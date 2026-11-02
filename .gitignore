@@ -18,8 +18,7 @@ __pycache__/
 *.h5
 *.keras
 
-# Generated ESP32 example model/fixture (trained artifact + dataset audio)
-firmware/esp32_stream1s/main/generated/
+# main/generated/ (model C array + 1 s TreeVibes fixture) is committed so the example builds from a clone.
 firmware/esp32_stream1s/build/
 firmware/esp32_stream1s/managed_components/
 firmware/esp32_stream1s/dependencies.lock

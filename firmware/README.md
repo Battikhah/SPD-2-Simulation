@@ -19,6 +19,8 @@ Board: ESP32-D0WD-V3 rev 3.1 (CP2102 USB-UART, 4 MB flash used as 2 MB), CPU at 
 
 So the model fits in flash and RAM, and one 1 s window takes about 0.43 s on one core at 160 MHz, which keeps up with real time. These are single-run timings with no audio capture, LoRa or sleep; power draw and the complete application remain unmeasured.
 
+`esp32_stream1s/main/generated/` is committed (since 2 November) and holds this model as a C array (`model_data.cc/.h`) plus the 1 s TreeVibes development fixture (`fixture.h`), so the example builds from a clone without the dataset, training outputs or TensorFlow. The firmware applies no alarm threshold: calibrate each device on about 50 known-healthy-tree recordings (90th percentile of their 10 s scores).
+
 Build on Windows: install ESP-IDF v5.3.x (`install.ps1 esp32`), dot-source `export.ps1`, then in `esp32_stream1s/` run `idf.py set-target esp32`, `idf.py build` and `idf.py -p COMx flash monitor`. The CP2102 needs the Silicon Labs CP210x Universal Windows Driver.
 
 ## `logmel/` — portable C99 front end
@@ -51,7 +53,7 @@ Result: 18 windows (16 real 1 s windows from 8 development clips in folders 24, 
 This example is derived from the ML-for-Senior benchmark harness (`deployment/esp32`, esp-tflite-micro 1.3.5, ESP-IDF 5.3–6.0). It streams a real 1 s fixture ten times, in 160-sample chunks, through `logmel_push` directly into the int8 input tensor. It runs `stream1s_w8` on each window and averages ten probabilities into one 10 s score. It reports a JSON line with the input checksum check, the fixture output delta, per-window front-end and inference time, `arena_used_bytes` and heap. It deliberately applies no decision threshold, because no final model or threshold has been frozen; it also uses one fold model (seed 0, fold 0), not the 3-seed ensemble.
 
 ```powershell
-outputs\tf-venv\Scripts\python.exe scripts\gen_esp32_example.py   # fills main/generated (git-ignored)
+outputs\tf-venv\Scripts\python.exe scripts\gen_esp32_example.py   # only to regenerate main/generated
 cd firmware\esp32_stream1s
 idf.py set-target esp32
 idf.py build size
