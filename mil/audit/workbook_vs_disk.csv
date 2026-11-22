@@ -1,0 +1,36 @@
+,IMEI,GPS_LAT,GPS_LONG,VISUAL,AUDIO,CONFIRMATION,COMMENT,wavs,dir_label,on_disk,in_workbook,locked_split
+folder_1,867584031542538,35.3317795,25.1290474,B,1,YES,"bussy city center, pavement, drill bit sensor",73,['infested'],True,True,val
+folder_2,867584033227260,35.3318176,25.1290665,B,1,YES,"bussy city center, pavement, drill bit sensor",68,['infested'],True,True,val
+folder_3,867584031542538,35.3316269,25.1290836,Α,1,NO,"bussy city center, pavement, drill bit sensor",19,['infested'],True,True,val
+folder_4,867584033227260,35.3314171,25.1288147,Α,1,NO,"bussy city center, pavement, drill bit sensor",27,['infested'],True,True,val
+folder_5,867584031542538,35.3195114,25.1315899,Α,1,YES,"near street, not city ecnter, drill bit sensor",69,['infested'],True,True,val
+folder_6,867584033227260,35.319397,25.1314068,Α,1,YES,"near street, not city ecnter, drill bit sensor",76,['infested'],True,True,val
+folder_7,867584033228409,35.5079269,24.0136147,X,0,YES,"orange tree,rain,wind,braches and leaves",155,['clean'],True,True,train
+folder_8,867584033227260,35.3193817,25.1314812,X,0,YES,"fig tree, rainy day, heavy shower, pruned tree",238,['clean'],True,True,val
+folder_9,867584033228409,35.0736046,24.8303413,X,0,YES,"apricot tree, wind, pruned",528,['clean'],True,True,train
+folder_10,,,,X,0,YES,"healthy tree trank placed in a balcony, low traffic street, waveguide",446,['clean'],True,True,test
+folder_11,867584031542538,35.3323097,25.1345291,B,1,YES,"small alley, urban",230,['infested'],True,True,val
+folder_12,867584033228391,35.3324699,25.1345177,B,1,YES,"small alley, urban",5,['infested'],True,True,val
+folder_13,867584031542538,35.3322678,25.1343212,B,1,YES,"small alley, urban",15,['infested'],True,True,val
+folder_14,867584033228391,35.3324356,25.1345253,B,1,YES,"small alley, urban",18,['infested'],True,True,val
+folder_15,,,,A,1,YES,"infested tree trank placed in a balcony, low traffic street, waveguide",45,['infested'],True,True,test
+folder_16,867584031542538,35.3317261,25.1318474,B,1,YES,"alley, urban, children playing close to inspected trees",18,['infested'],True,True,val
+folder_17,867584033228391,35.3317451,25.1318226,B,1,YES,"alley, urban, children playing close to inspected trees",13,['infested'],True,True,val
+folder_18,867584031542538,35.331768,25.1317959,B,1,NO,"alley, urban, children playing close to inspected trees",10,['infested'],True,True,val
+folder_19,867584033228391,35.3317986,25.1319599,X,1,YES,"alley, urban, children playing close to inspected trees",5,['infested'],True,True,val
+folder_20,867584031542538,35.3316917,25.1320381,B,1,YES,"alley, urban, children playing close to inspected trees",11,['infested'],True,True,val
+folder_21,867584033228391,35.3318291,25.1318722,X,1,YES,"alley, urban, children playing close to inspected trees, very strong impulses",17,['infested'],True,True,val
+folder_22,867584031542538,35.3316917,25.1320381,X,1,NO,"alley, urban, no exit tunnels or other signs",6,['infested'],True,True,val
+folder_23,867584033228391,35.3317795,25.131916,X,1,NO,"alley, urban, young tree, one exit channel",6,['infested'],True,True,val
+folder_24,867584031542538,35.2524948,25.1637535,X,0,YES,"forrest, healthy trees",27,['clean'],True,True,val
+folder_25,867584033228391,35.2521973,25.1643162,X,0,YES,"forrest, healthy trees",27,['clean'],True,True,val
+folder_26,867584031542538,35.331974,25.1321526,B,1,YES,"urban, trees near alley, waveguide",27,['test(unlabelled dir)'],True,True,val
+folder_27,867584033228391,35.3318481,25.1321678,B,1,YES,"urban, trees near alley",18,['test(unlabelled dir)'],True,True,val
+folder_28,867584033227302,35.3320503,25.1322556,B,1,YES,"urban, trees near alley",20,['test(unlabelled dir)'],True,True,train
+folder_29,867584033227468,35.3321457,25.1325397,B,1,YES,"urban, trees near alley",20,['test(unlabelled dir)'],True,True,test
+folder_30,867584033229928,35.3321609,25.1325436,B,1,YES,"urban, trees near alley",20,['test(unlabelled dir)'],True,True,val
+folder_31,867584033228425,35.3320694,25.1325874,B,1,YES,"urban, trees near alley",20,['test(unlabelled dir)'],True,True,train
+folder_32,867584033227468,35.3310966,25.1141739,B,1,YES,"urban, trees near alley",753,['test(unlabelled dir)'],True,True,test
+folder_33,867584033227302,35.3312378,25.1145401,B,1,YES,"urban, trees near alley",753,['test(unlabelled dir)'],True,True,train
+folder_34,867584031542538,35.3317566,25.1320629,B,1,YES,"urban, trees near alley",23,['test(unlabelled dir)'],True,True,val
+folder_35,,,,B,0,YES,Negative from infested trees,333,['clean'],True,True,

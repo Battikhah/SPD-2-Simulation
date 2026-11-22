@@ -1,0 +1,214 @@
+hashed 5000
+hashed 10000
+hashed 15000
+hashed 20000
+hashed 25000
+hashed 30000
+hashed 35000
+hashed 40000
+hashed 45000
+hashed 50000
+hashed 55000
+
+== 1. directories
+                                directory  wavs
+         field/field/test/difficult_cases    15
+               field/field/test/folder_26    27
+               field/field/test/folder_27    18
+               field/field/test/folder_28    20
+               field/field/test/folder_29    20
+               field/field/test/folder_30    20
+               field/field/test/folder_31    20
+               field/field/test/folder_32   753
+               field/field/test/folder_33   753
+               field/field/test/folder_34    23
+        field/field/train/clean/folder_10   446
+        field/field/train/clean/folder_24    27
+        field/field/train/clean/folder_25    27
+        field/field/train/clean/folder_35   333
+         field/field/train/clean/folder_7   155
+         field/field/train/clean/folder_8   238
+         field/field/train/clean/folder_9   508
+field/field/train/clean/folder_9/folder_9    20
+      field/field/train/infested/folder_1    73
+     field/field/train/infested/folder_11   230
+     field/field/train/infested/folder_12     5
+     field/field/train/infested/folder_13    15
+     field/field/train/infested/folder_14    18
+     field/field/train/infested/folder_15    45
+     field/field/train/infested/folder_16    18
+     field/field/train/infested/folder_17    13
+     field/field/train/infested/folder_18    10
+     field/field/train/infested/folder_19     5
+      field/field/train/infested/folder_2    68
+     field/field/train/infested/folder_20    11
+     field/field/train/infested/folder_21    17
+     field/field/train/infested/folder_22     6
+     field/field/train/infested/folder_23     6
+      field/field/train/infested/folder_3    19
+      field/field/train/infested/folder_4    27
+      field/field/train/infested/folder_5    69
+      field/field/train/infested/folder_6    76
+                            lab/lab/clean   967
+                         lab/lab/infested 53676
+filenames not matching F_<14 digits>_<n>_T<temp>.wav: 54643 {'lab/lab/infested': 53676, 'lab/lab/clean': 967}
+
+== 2. workbook vs disk
+                      IMEI    GPS_LAT   GPS_LONG VISUAL  AUDIO CONFIRMATION  wavs               dir_label  on_disk  in_workbook locked_split
+folder_1   867584031542538  35.331780  25.129047      B      1          YES    73              [infested]     True         True          val
+folder_2   867584033227260  35.331818  25.129067      B      1          YES    68              [infested]     True         True          val
+folder_3   867584031542538  35.331627  25.129084      Α      1           NO    19              [infested]     True         True          val
+folder_4   867584033227260  35.331417  25.128815      Α      1           NO    27              [infested]     True         True          val
+folder_5   867584031542538  35.319511  25.131590      Α      1          YES    69              [infested]     True         True          val
+folder_6   867584033227260  35.319397  25.131407      Α      1          YES    76              [infested]     True         True          val
+folder_7   867584033228409  35.507927  24.013615      X      0          YES   155                 [clean]     True         True        train
+folder_8   867584033227260  35.319382  25.131481      X      0          YES   238                 [clean]     True         True          val
+folder_9   867584033228409  35.073605  24.830341      X      0          YES   528                 [clean]     True         True        train
+folder_10              NaN        NaN        NaN      X      0          YES   446                 [clean]     True         True         test
+folder_11  867584031542538  35.332310  25.134529      B      1          YES   230              [infested]     True         True          val
+folder_12  867584033228391  35.332470  25.134518      B      1          YES     5              [infested]     True         True          val
+folder_13  867584031542538  35.332268  25.134321      B      1          YES    15              [infested]     True         True          val
+folder_14  867584033228391  35.332436  25.134525      B      1          YES    18              [infested]     True         True          val
+folder_15              NaN        NaN        NaN      A      1          YES    45              [infested]     True         True         test
+folder_16  867584031542538  35.331726  25.131847      B      1          YES    18              [infested]     True         True          val
+folder_17  867584033228391  35.331745  25.131823      B      1          YES    13              [infested]     True         True          val
+folder_18  867584031542538  35.331768  25.131796      B      1           NO    10              [infested]     True         True          val
+folder_19  867584033228391  35.331799  25.131960      X      1          YES     5              [infested]     True         True          val
+folder_20  867584031542538  35.331692  25.132038      B      1          YES    11              [infested]     True         True          val
+folder_21  867584033228391  35.331829  25.131872      X      1          YES    17              [infested]     True         True          val
+folder_22  867584031542538  35.331692  25.132038      X      1           NO     6              [infested]     True         True          val
+folder_23  867584033228391  35.331780  25.131916      X      1           NO     6              [infested]     True         True          val
+folder_24  867584031542538  35.252495  25.163753      X      0          YES    27                 [clean]     True         True          val
+folder_25  867584033228391  35.252197  25.164316      X      0          YES    27                 [clean]     True         True          val
+folder_26  867584031542538  35.331974  25.132153      B      1          YES    27  [test(unlabelled dir)]     True         True          val
+folder_27  867584033228391  35.331848  25.132168      B      1          YES    18  [test(unlabelled dir)]     True         True          val
+folder_28  867584033227302  35.332050  25.132256      B      1          YES    20  [test(unlabelled dir)]     True         True        train
+folder_29  867584033227468  35.332146  25.132540      B      1          YES    20  [test(unlabelled dir)]     True         True         test
+folder_30  867584033229928  35.332161  25.132544      B      1          YES    20  [test(unlabelled dir)]     True         True          val
+folder_31  867584033228425  35.332069  25.132587      B      1          YES    20  [test(unlabelled dir)]     True         True        train
+folder_32  867584033227468  35.331097  25.114174      B      1          YES   753  [test(unlabelled dir)]     True         True         test
+folder_33  867584033227302  35.331238  25.114540      B      1          YES   753  [test(unlabelled dir)]     True         True        train
+folder_34  867584031542538  35.331757  25.132063      B      1          YES    23  [test(unlabelled dir)]     True         True          val
+folder_35              NaN        NaN        NaN      B      0          YES   333                 [clean]     True         True          NaN
+
+== 3. identical files: 62 files in 31 MD5 groups; 20 groups within one folder/directory, 11 across
+cross-folder MD5 groups by folder set: {'folder_27 + folder_34': 10, 'folder_1 + folder_35': 1}
+nested field/field/train/clean/folder_9/folder_9: 20 files; identical bytes in parent folder: 20; same filename in parent: 20
+field filenames appearing in >1 folder: 26 {'folder_3 + folder_4': 15, 'folder_27 + folder_34': 10, 'folder_1 + folder_35': 1}
+manifest PCM-identical recordings: 90 | across folders: 25
+
+== 5. timing per folder
+             n               first                last  span_days  median_gap_h  max_gap_h  gaps_over_7d  gaps_over_36h  distinct_days  duplicate_timestamps
+folder                                                                                                                                                      
+folder_1    73 2020-02-17 14:33:54 2020-02-18 13:54:59       0.97          0.25       1.83             0              0              2                     0
+folder_2    68 2020-02-17 14:40:13 2020-02-18 10:11:31       0.81          0.17       2.00             0              0              2                     0
+folder_3    19 2020-02-20 19:03:12 2020-02-21 07:33:38       0.52          0.71       1.33             0              0              2                     0
+folder_4    27 2020-02-20 18:33:12 2020-02-21 11:33:38       0.71          0.29       3.33             0              0              2                     0
+folder_5    69 2020-02-21 17:21:55 2020-02-22 09:36:39       0.68          0.17       1.17             0              0              2                     0
+folder_6    76 2020-02-21 17:43:07 2020-02-22 09:59:02       0.68          0.17       1.00             0              0              2                     0
+folder_7   155 2020-02-22 13:36:26 2020-02-23 02:44:29       0.55          0.08       0.21             0              0              2                     0
+folder_8   238 2020-02-22 17:11:27 2020-02-23 13:02:56       0.83          0.08       0.13             0              0              2                     0
+folder_9   528 2020-02-29 18:46:36 2020-03-02 16:00:47       1.88          0.08       0.30             0              0              3                    20
+folder_10  446 2020-03-19 21:48:52 2020-03-21 14:19:13       1.69          0.08       1.13             0              0              3                     0
+folder_11  230 2020-05-16 00:03:50 2020-05-16 20:20:11       0.84          0.08       0.99             0              0              1                     0
+folder_12    5 2020-05-16 19:14:21 2020-05-16 20:15:56       0.04          0.26       0.26             0              0              1                     0
+folder_13   15 2020-05-17 19:17:35 2020-05-17 20:29:21       0.05          0.08       0.10             0              0              1                     0
+folder_14   18 2020-05-17 19:14:00 2020-05-17 20:40:46       0.06          0.08       0.10             0              0              1                     0
+folder_15   45 2020-05-15 10:57:43 2020-05-15 23:58:50       0.54          0.08       1.09             0              0              1                     0
+folder_16   18 2020-05-18 20:37:01 2020-05-20 20:37:35       2.00          0.08      46.62             0              1              2                     0
+folder_17   13 2020-05-18 20:46:33 2020-05-20 20:37:55       1.99          0.08      46.66             0              1              2                     0
+folder_18   10 2020-05-21 17:54:23 2020-05-21 18:45:01       0.04          0.08       0.17             0              0              1                     0
+folder_19    5 2020-05-21 18:08:47 2020-05-21 18:33:49       0.02          0.08       0.17             0              0              1                     0
+folder_20   11 2020-05-22 15:31:13 2020-05-22 16:42:38       0.05          0.09       0.17             0              0              1                     0
+folder_21   17 2020-05-22 15:35:34 2020-05-22 16:57:18       0.06          0.08       0.10             0              0              1                     0
+folder_22    6 2020-05-23 20:03:12 2020-05-23 20:48:43       0.03          0.17       0.26             0              0              1                     0
+folder_23    6 2020-05-23 19:53:13 2020-05-23 20:34:37       0.03          0.10       0.25             0              0              1                     0
+folder_24   27 2020-05-24 14:51:39 2020-05-24 17:03:25       0.09          0.08       0.10             0              0              1                     0
+folder_25   27 2020-05-24 14:46:43 2020-05-24 16:58:34       0.09          0.08       0.10             0              0              1                     0
+folder_26   27 2020-05-29 18:08:09 2020-06-04 18:20:22       6.01          0.08     142.07             0              1              2                     0
+folder_27   18 2020-05-29 18:11:09 2020-06-04 18:08:05       6.00          0.08     142.15             0              1              2                     0
+folder_28   20 2020-06-02 17:15:06 2020-06-04 18:25:25       2.05          0.08      47.52             0              1              2                     0
+folder_29   20 2020-06-02 17:17:16 2020-06-04 18:28:54       2.05          0.08      47.42             0              1              2                     0
+folder_30   20 2020-06-02 17:19:29 2020-06-04 18:29:51       2.05          0.08      47.53             0              1              2                     0
+folder_31   20 2020-06-02 17:22:49 2020-06-04 18:31:34       2.05          0.08      47.63             0              1              2                     0
+folder_32  753 2020-06-10 17:17:53 2020-06-13 09:13:07       2.66          0.08       0.19             0              0              4                     0
+folder_33  753 2020-06-10 17:13:24 2020-06-13 09:07:50       2.66          0.08       0.19             0              0              4                     0
+folder_34   23 2020-05-29 19:09:47 2020-07-08 18:55:32      39.99          0.08     815.60             1              2              3                     0
+folder_35  333 2020-02-18 00:00:01 2020-05-23 20:49:38      95.87          0.08    2025.84             1              3              8                     0
+
+== 4. folder pairs < 25 m
+        a         b  metres  same_device  label_a  label_b  overlap_days split_a split_b
+folder_20 folder_22     0.0         True        1        1      0.000000     val     val
+folder_29 folder_30     1.7        False        1        1      2.048206    test     val
+folder_16 folder_17     3.1        False        1        1      1.993773     val     val
+folder_17 folder_18     3.5        False        1        1      0.000000     val     val
+folder_12 folder_14     3.9         True        1        1      0.000000     val     val
+folder_19 folder_23     4.5         True        1        1      0.000000     val     val
+ folder_1  folder_2     4.6        False        1        1      0.813403     val     val
+folder_16 folder_18     6.6         True        1        1      0.000000     val     val
+folder_21 folder_23     6.8         True        1        1      0.000000     val     val
+ folder_6  folder_8     7.0         True        1        0      0.000000     val     val
+folder_20 folder_34     7.6         True        1        1      0.000000     val     val
+folder_22 folder_34     7.6         True        1        1      0.000000     val     val
+folder_16 folder_23     8.6        False        1        1      0.000000     val     val
+folder_19 folder_21     8.6         True        1        1      0.000000     val     val
+folder_17 folder_23     9.3         True        1        1      0.000000     val     val
+folder_29 folder_31     9.5        False        1        1      2.045891    test   train
+folder_18 folder_21     9.7        False        1        1      0.000000     val     val
+folder_17 folder_21    10.4         True        1        1      0.000000     val     val
+folder_19 folder_34    10.4        False        1        1      0.000000     val     val
+folder_30 folder_31    10.9        False        1        1      2.046551     val   train
+folder_18 folder_23    11.0        False        1        1      0.000000     val     val
+folder_16 folder_21    11.7        False        1        1      0.000000     val     val
+folder_26 folder_28    12.6        False        1        1      2.045324     val   train
+folder_16 folder_19    13.0        False        1        1      0.000000     val     val
+folder_23 folder_34    13.6        False        1        1      0.000000     val     val
+folder_17 folder_19    13.8         True        1        1      0.000000     val     val
+folder_19 folder_20    13.8        False        1        1      0.000000     val     val
+folder_19 folder_22    13.8        False        1        1      0.000000     val     val
+folder_27 folder_34    13.9        False        1        1      5.957153     val     val
+folder_11 folder_14    14.0        False        1        1      0.000000     val     val
+folder_26 folder_27    14.1        False        1        1      5.997870     val     val
+folder_20 folder_23    14.8        False        1        1      0.000000     val     val
+folder_22 folder_23    14.8        False        1        1      0.021817     val     val
+folder_18 folder_19    15.3        False        1        1      0.017384     val     val
+ folder_1  folder_3    17.3         True        1        1      0.000000     val     val
+ folder_5  folder_8    17.5        False        1        0      0.000000     val     val
+folder_16 folder_20    17.7         True        1        1      0.000000     val     val
+folder_16 folder_22    17.7         True        1        1      0.000000     val     val
+folder_11 folder_12    17.8        False        1        1      0.042766     val     val
+folder_21 folder_34    19.1        False        1        1      0.000000     val     val
+folder_11 folder_13    19.4         True        1        1      0.000000     val     val
+folder_19 folder_27    19.6         True        1        1      0.000000     val     val
+folder_16 folder_34    19.8         True        1        1      0.000000     val     val
+folder_17 folder_22    20.4        False        1        1      0.000000     val     val
+folder_17 folder_20    20.4        False        1        1      0.000000     val     val
+ folder_5  folder_6    20.9        False        1        1      0.662176     val     val
+folder_20 folder_27    21.0        False        1        1      0.000000     val     val
+folder_22 folder_27    21.0        False        1        1      0.000000     val     val
+ folder_2  folder_3    21.3        False        1        1      0.000000     val     val
+folder_20 folder_21    21.4        False        1        1      0.046574     val     val
+folder_21 folder_22    21.4        False        1        1      0.000000     val     val
+folder_17 folder_34    21.8        False        1        1      0.000000     val     val
+folder_18 folder_20    23.6         True        1        1      0.000000     val     val
+folder_18 folder_22    23.6         True        1        1      0.000000     val     val
+folder_27 folder_28    23.9        False        1        1      2.036794     val   train
+folder_23 folder_27    24.1         True        1        1      0.000000     val     val
+folder_18 folder_34    24.3         True        1        1      0.000000     val     val
+
+== 6. components of the < 25 m graph
+  folder_1 + folder_2 + folder_3  labels=[1]
+  folder_4  labels=[1]
+  folder_5 + folder_6 + folder_8  labels=[0, 1]
+  folder_7  labels=[0]
+  folder_9  labels=[0]
+  folder_10  labels=[0]
+  folder_11 + folder_12 + folder_13 + folder_14  labels=[1]
+  folder_15  labels=[1]
+  folder_16 + folder_17 + folder_18 + folder_19 + folder_20 + folder_21 + folder_22 + folder_23 + folder_26 + folder_27 + folder_28 + folder_34  labels=[1]
+  folder_24  labels=[0]
+  folder_25  labels=[0]
+  folder_29 + folder_30 + folder_31  labels=[1]
+  folder_32  labels=[1]
+  folder_33  labels=[1]
+  folder_35  labels=[0]

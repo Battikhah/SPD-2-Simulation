@@ -1,0 +1,165 @@
+"""One-time sealed-holdout test of the four frozen AST models pre-registered in mil/HOLDOUT_PREREG.md.
+
+Refuses to run if outputs/mil/HOLDOUT_CONSUMED.json exists; writes it before the first holdout score. Holdout = the
+sealed MIL groups (folders 10, 15, 29 + 30, 32), which include the locked final test split. Holdout recordings that
+duplicate a development recording (PCM hash) are dropped. Writes outputs/mil/holdout/{clips.csv, emb_ast.npy,
+predictions.csv} and mil/HOLDOUT_RESULTS.md.
+
+    $env:PYTHONPATH = (Resolve-Path outputs/torch-cu121).Path; $env:PYTHONUTF8 = '1'
+    .venv/Scripts/python.exe mil/holdout_eval.py --confirm-one-time-test
+"""
+
+import argparse
+import hashlib
+import json
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import common as C  # noqa: E402
+import metrics as M  # noqa: E402
+
+MARKER = C.OUT / "HOLDOUT_CONSUMED.json"
+HOUT = C.OUT / "holdout"
+MODELS = [("H1", "FINAL-all", 24, "yes"), ("H2", "H-AST-K12", 12, "yes"), ("H3", "H-AST-noF8", 24, "no"),
+          ("H4", "H-AST-noF8-K12", 12, "no")]
+KEYS = ("roc_auc", "balanced_accuracy", "recall", "specificity", "precision", "f1", "accuracy")
+
+
+def sealed_index():
+    g = C.load_groups()["groups"]
+    sealed = {f: (k, v["label"]) for k, v in g.items() if v.get("sealed") for f in v["folders"]}
+    m = pd.read_csv(C.MANIFEST)
+    m["folder"] = m.path.str.extract(r"(folder_\d+)")[0]
+    m = m[m.folder.isin(sealed)].sort_values("path")
+    dev_hashes = set(pd.read_csv(C.CACHE / "clips.csv").pcm_sha256)
+    n0 = len(m)
+    m = m[~m.pcm_sha256.isin(dev_hashes)].drop_duplicates("pcm_sha256", keep="first")
+    parsed = m.path.str.extract(r"F_(\d{14})_(\d+)")
+    m["time"] = [datetime.strptime(t, "%Y%m%d%H%M%S") for t in parsed[0]]
+    m["file_index"] = parsed[1].astype(int)
+    m["group"] = m.folder.map(lambda f: sealed[f][0])
+    m["label"] = m.folder.map(lambda f: sealed[f][1])
+    m = m.sort_values(["group", "folder", "time", "file_index"]).reset_index(drop=True)
+    return m[["path", "folder", "group", "label", "time", "file_index", "pcm_sha256"]], n0 - len(m)
+
+
+def scores(d, w_scheme, tree_col="tree_group"):
+    y = d.label.to_numpy()
+    w = M.window_weights(d[tree_col].to_numpy(), y, w_scheme)
+    return M.binary_metrics(y, d.prob.to_numpy(), w)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--confirm-one-time-test", action="store_true")
+    a = ap.parse_args()
+    if not a.confirm_one_time_test:
+        raise SystemExit("one-time test: pass --confirm-one-time-test")
+    if MARKER.exists():
+        raise SystemExit(f"holdout already consumed: {MARKER}")
+    import torch
+    from build_embeddings import ast_model, audio
+    from model import MILModel
+    from train import score_windows
+
+    prereg = (C.MIL / "HOLDOUT_PREREG.md").read_bytes()
+    for _, run, _, _ in MODELS:
+        assert (C.EXP / run / "seed42" / "foldall" / "model.pt").exists(), run
+    idx, dropped = sealed_index()
+    MARKER.write_text(json.dumps(dict(
+        consumed_at=time.strftime("%Y-%m-%d %H:%M:%S"), reason="user-approved one-time sealed-holdout test",
+        prereg_sha256=hashlib.sha256(prereg).hexdigest(), models=[m[1] for m in MODELS],
+        folders=sorted(idx.folder.unique()), recordings=len(idx), dropped_duplicates=dropped), indent=1))
+    HOUT.mkdir(parents=True, exist_ok=True)
+    idx.to_csv(HOUT / "clips.csv", index=False)
+    print(f"holdout: {len(idx)} recordings ({dropped} duplicates of development recordings or each other dropped)",
+          flush=True)
+    f, rate, bs = ast_model(torch)
+    emb = []
+    with torch.no_grad():
+        for i in range(0, len(idx), bs):
+            batch = torch.from_numpy(np.stack([audio(p, rate) for p in idx.path[i:i + bs]])).cuda()
+            emb.append(f(batch).float().cpu().numpy())
+    emb = np.concatenate(emb).astype(np.float32)
+    assert np.isfinite(emb).all()
+    np.save(HOUT / "emb_ast.npy", emb)
+    seqs = C.folder_sequences(idx)
+    preds = []
+    for hid, run, k, f8 in MODELS:
+        cfg = json.loads((C.EXP / run / "seed42" / "foldall" / "config.json").read_text())
+        assert cfg["input"] == "emb_ast" and cfg["k"] == k
+        model = MILModel(cfg["input"], 768, cfg["pooling"], cfg["classifier"], cfg["k"]).cuda()
+        model.load_state_dict(torch.load(C.EXP / run / "seed42" / "foldall" / "model.pt", map_location="cuda"))
+        model.eval()
+        for st in ("1", "K"):
+            p = score_windows(model, emb, seqs, st, cfg, torch)
+            p.insert(0, "model", hid)
+            p.insert(1, "run", run)
+            preds.append(p)
+    P = pd.concat(preds, ignore_index=True)
+    P.to_csv(HOUT / "predictions.csv", index=False)
+    report(P, idx, dropped)
+
+
+def report(P, idx, dropped):
+    lines = ["# Sealed-holdout results (one-time test)", "",
+             "Generated by `mil/holdout_eval.py`, following the pre-registration in `mil/HOLDOUT_PREREG.md` "
+             "(decision rules fixed before any holdout score). All four pre-registered models are reported. "
+             f"Holdout: {len(idx)} recordings from folders " + ", ".join(sorted(idx.folder.unique(),
+                                                                              key=lambda x: int(x[7:])))
+             + f" ({dropped} duplicate recordings dropped). **Only one healthy group (folder 10, a cut trunk on a "
+             "balcony, no recorder metadata)**, so specificity and AUC rest on one recording stream. Threshold 0.5. "
+             "*Unweighted*: each window (or tree-day) counts once; *tree-weighted*: each group counts equally.", "",
+             "Models (frozen AST AudioSet embeddings + gated attention + linear classifier, trained on all "
+             "development trees):", ""]
+    for hid, run, k, f8 in MODELS:
+        lines.append(f"- **{hid}** `{run}`: K = {k}, folder 8 in training: {f8}")
+    lines.append("")
+    t = pd.to_datetime(P.start_time) + (pd.to_datetime(P.end_time) - pd.to_datetime(P.start_time)) / 2
+    P = P.assign(day=t.dt.date)
+    for unit, title in (("K", "Non-overlapping windows (stride K)"), ("1", "Overlapping windows (stride 1)"),
+                        ("day", "Tree-day decisions (daily mean of stride-1 window scores)")):
+        lines += [f"## {title}", "",
+                  "| Model | K | Folder 8 in training | Weighting | Units (healthy / infested) | " +
+                  " | ".join(k.replace("_", " ") for k in KEYS) + " | TP / FN / FP / TN |",
+                  "| --- | ---: | --- | --- | --- | " + " | ".join("---:" for _ in KEYS) + " | --- |"]
+        for hid, run, k, f8 in MODELS:
+            if unit == "day":
+                d = P[(P.model == hid) & (P.stride == "1")].groupby(["tree_group", "folder", "day", "label"]) \
+                    .prob.mean().reset_index()
+            else:
+                d = P[(P.model == hid) & (P.stride == unit)]
+            for wn, wt in (("unweighted", "unweighted"), ("tree", "tree-weighted")):
+                m = scores(d, wn)
+                lines.append(f"| {hid} | {k} | {f8} | {wt} | {int((d.label == 0).sum())} / {int((d.label == 1).sum())} | "
+                             + " | ".join("n/a" if pd.isna(m[x]) else f"{m[x]:.3f}" for x in KEYS)
+                             + f" | {m['tp']:.2f} / {m['fn']:.2f} / {m['fp']:.2f} / {m['tn']:.2f} |")
+        lines.append("")
+    lines += ["## Per folder (stride-1 windows)", "",
+              "| Folder | Group | Label | Recordings | " + " | ".join(f"{h} mean / flagged" for h, *_ in MODELS) + " |",
+              "| --- | --- | --- | ---: | " + " | ".join("---" for _ in MODELS) + " |"]
+    s1 = P[P.stride == "1"]
+    for fo in sorted(idx.folder.unique(), key=lambda x: int(x[7:])):
+        d = s1[s1.folder == fo]
+        cells = [f"{d[d.model == h].prob.mean():.3f} / {(d[d.model == h].prob > 0.5).mean():.2f}" for h, *_ in MODELS]
+        lab = "healthy" if d.label.iloc[0] == 0 else "infested"
+        lines.append(f"| {fo[7:]} | {d.tree_group.iloc[0]} | {lab} | {(idx.folder == fo).sum()} | " + " | ".join(cells)
+                     + " |")
+    lines += ["", "**Tree-level verdicts** (mean window score per group > 0.5):", ""]
+    for hid, *_ in MODELS:
+        g = s1[s1.model == hid].groupby(["tree_group", "label"]).prob.mean()
+        lines.append(f"- {hid}: " + ", ".join(f"{t} ({'healthy' if lab == 0 else 'infested'}) {v:.3f} -> "
+                                               f"{'infested' if v > 0.5 else 'healthy'}" for (t, lab), v in g.items()))
+    lines.append("")
+    (C.MIL / "HOLDOUT_RESULTS.md").write_text("\n".join(lines), encoding="utf-8")
+    print(C.MIL / "HOLDOUT_RESULTS.md")
+
+
+if __name__ == "__main__":
+    main()

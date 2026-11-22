@@ -95,3 +95,58 @@ For GPU diagnostics on this specific computer, CUDA-enabled PyTorch is installed
 - **2 November 2026 (first on-board run):** ESP-IDF v5.3.6 installed under `%USERPROFILE%\esp\esp-idf` (tools in `%USERPROFILE%\.espressif`; uses the uv Python 3.12). `firmware/esp32_stream1s` with stream1s_w8_d4 built and ran on an ESP32-D0WD-V3 via CP2102 on COM9: app 301,664 B (29% of partition), arena used 40,652 B of 64 KiB, front end 81 ms + inference 348 ms per 1 s window at 160 MHz, output identical to the Python int8 reference. Details in `firmware/README.md`. Fixed `main/CMakeLists.txt` to use `CMAKE_CURRENT_LIST_DIR` (the generated-model check failed during ESP-IDF's requirement scan). Power draw still unmeasured.
 
 If the requested work is blocked by missing evidence or data, state exactly what is missing and the next action; do not fabricate labels, grouping, tests, measurements or outcomes. Record meaningful progress and recovery steps in the audit/status files.
+
+- **9 November 2026 (tree-level MIL handoff: audit, B0 and B0-s2).** New work lives in `mil/`; heavy artifacts are in ignored `outputs/mil/`.
+  - **Audit:** `mil/DATA_REPORT.md`, made by `mil/data_audit.py`.
+    - Recordings are about every 5 minutes, not hourly.
+    - Test folders 26–34 are labelled, but all infested.
+    - Folder 35 is a pool of clips from infested trees.
+    - Folders 3 and 4 share 15 PCM-identical recordings.
+  - **User decisions:**
+    - The sealed holdout stays sealed as whole tree groups (10, 15, 29+30, 32).
+    - Folder 35 is excluded.
+    - Groups merge only on same-tree evidence: under 5 m or shared recordings (`mil/groups.json`, confirmed).
+    - Duplicate recordings are removed, leaving 2,477 development recordings.
+    - Groups: 21 (5 healthy, 16 infested). Folds: `mil/folds.json`.
+  - **Pipeline:** `mil/build_features.py`, `train.py` (resumable, live monitoring: TensorBoard `outputs/mil/tb`, `mil/LIVE_STATUS.md`, `mil/live_curves.png`), `metrics.py`, `report.py` → `mil/RESULTS.md`.
+  - **Speed:** about 4.1 min per 10-fold training on the RTX 2070; the GPU ran at 97–98%.
+  - **B0 results (tree-weighted, stride 1):** ROC-AUC 0.552 [0.30, 0.84] and balanced accuracy 0.611 [0.47, 0.80]. B0-s2: 0.619 and 0.619.
+  - **What the models do:** all 16 infested trees are flagged, but so are 4 of 5 healthy trees. Folder 24 (recorder 2538) scores 1.0, while folder 25 (same site and time, other recorder) scores 0.003. That is consistent with device or site confounding.
+  - **Overfitting:** training loss falls below 0.01 by epoch 10.
+  - **Next:** K, memory decay, skip-window span and the rest of the run list wait for the user.
+
+- **10 November 2026 (MIL full run list, K=24 then K=12).**
+  - **Status:** all runs finished without failures. Results with approach labels are in `mil/RESULTS.md`; models and predictions are in `outputs/mil/experiments/`.
+  - **Pretrained encoders:** PANNs (Zenodo), BEATs iter3+ AS2M (Hugging Face mirror; SHA-256 matches on two mirrors) and AST.
+  - **Lab bank:** 2,571 pulse clips, because only 2,571 of 15,000 lab-infested clips passed the impulse threshold.
+  - **Improvement rule passes:**
+    - **K=24:** E-AST-lin (AUC 0.814 vs 0.552) and A-all (AUC 0.687).
+    - **K=12:** A2-noise, A4-tilt and A-win-K12 (balanced accuracy +0.04–0.05).
+    - **Caveats:** seed noise comes from one seed pair, and there are about 40 comparisons, so some passes may be chance.
+  - **FINAL models:**
+    - **K=24:** frozen AST + linear, identical in config and seed to E-AST-lin.
+    - **K=12:** CNN + noise + tilt, identical to A-win-K12.
+    - **FINAL-all models:** trained but not evaluated; the sealed holdout is untouched.
+  - **Consistent finding:** healthy folder 8 (recorder …7260, which also recorded infested folders 2, 4 and 6) and folder 24 (recorder 2538) are scored about 1.0 by every model. Folder 25 is scored about 0 by the CNN models. That fits device or site confounding.
+  - **B0-site25** (whole 25 m sites held out): AUC 0.50.
+  - **MEM-alarm** does not help (it flags every tree).
+  - **Speed:** about 40 minutes per 10-fold CNN run at K=24, about 23 minutes at K=12, about 4 minutes for frozen-embedding runs. The GPU was the bottleneck (data wait about 1%).
+
+- **11 November 2026 (skip-window campaign, XS-\*).**
+  - **R-B0 seed 43** stopped at 17:20 during fold 0 (not finished); R-B0 has one seed. R-AST-lin and R-Awin-K12 have 5 seeds each (`mil/RECORDER_RESULTS.md`).
+  - **User request:** skip-window training with much more training data, CNN and pretrained encoders, K=12 and 24, log-mel and MFCC 13x15 / 13x30. No new recordings exist, so "more data" means 10x the training windows (30 epochs x 640 steps x 6 bags = 115,200 bags per fold, vs 11,520) drawn as skip windows from the same recordings and 21 trees. It is not new data.
+  - **New code:** `mil/build_mfcc.py` (whole-clip MFCC from the cached log-mel: DCT of the dB mel, 13 coefficients, mean-pooled into 15 or 30 time chunks; matches librosa), `MfccEncoder` in `mil/model.py`, `skip_eval_n` in `mil/train.py`, XS-\* runs in `mil/experiments.py`, report `mil/skip_report.py` -> `mil/SKIP_RESULTS.md` (unweighted per-window metrics, stride K / skip / stride 1).
+  - **No pretrained MFCC encoder was used:** AudioSet encoders (PANNs, AST, BEATs) take log-mel; MFCC-based pretrained models are speech/speaker models (for example x-vectors on 23-30 MFCCs at 16 kHz) and do not fit 13-coefficient, 8 kHz, whole-clip MFCC maps.
+  - **Queue** (tree folds, seed 42, log `outputs/mil/xs_campaign.log`): XS-mfcc15-K12, XS-mfcc30-K12, XS-mfcc15, XS-mfcc30, XS-AST-lin-K12, XS-AST-lin, XS-BEATs-lin-K12, XS-BEATs-lin, XS-PANNs-lin-K12, XS-PANNs-lin, XS-cnn-K12, XS-cnn. Estimated 16-17 h on the RTX 2070. Resumable: rerun the same `mil/train.py --queue ...` command; finished folds are skipped.
+  - **Phase 2 (device robustness), queued 11 November evening:** the user asked to research the best approach and keep training until they return. Plan, literature and a decision rule fixed before results are in `mil/PHASE2_PLAN.md`. New options: `front` = `fn` (per-band frequency centring) or `pcen` (`mil/front.py`; caches `z_fn.npy`, `z_pcen.npy`), `mixstyle` (Freq-MixStyle) and `randeq` (random 6-knot EQ within ±6 dB as a device-response proxy). P-\* runs use leave-one-recorder-out folds with 3 seeds. A background waiter starts phase 2a (8 K=12 runs x 3 seeds, log `outputs/mil/phase2a.log`) when the XS campaign process exits. Report: `mil/phase2_report.py` -> `mil/PHASE2_RESULTS.md`. A GPU smoke test of P-\* failed with a cuDNN "FIND" error while the campaign shared the GPU; CPU checks of the data and model paths passed. If phase 2a fails at start, rerun the smoke test on a free GPU.
+  - **Crash and restart (11 November, 19:20-19:45):** the first XS run crashed at fold 4 with Windows error 1455 (commit exhausted). DataLoader worker shared-memory mappings accumulated over 19,200-step folds. Fix: `LOADER_STEPS = 1920` in `mil/train.py` restarts workers every 1,920 steps, and each later segment seeds its own bag stream (`BagStream.segment`). Earlier 1,920-step runs are unaffected. XS-mfcc15-K12 was deleted and restarted from scratch (crash log `outputs/mil/xs_campaign_crash1.log`). The campaign and then phase 2a now run as one chained background command. The GPU smoke test of P-\* passes on a free GPU.
+
+- **11 November 2026, 21:51: the sealed holdout was consumed** (user decision; marker `outputs/mil/HOLDOUT_CONSUMED.json`). Folders 10, 15, 29+30 and 32 include the locked final test split of `outputs/real-training-cuda/`. **Neither is an independent test any more for any pipeline.**
+  - **What was tested:** four frozen-AST models pre-registered in `mil/HOLDOUT_PREREG.md` (K=24 or 12, folder 8 in or out of training, trained on all development trees). Results are in `mil/HOLDOUT_RESULTS.md`; holdout embeddings and predictions are in `outputs/mil/holdout/`.
+  - **Result at the fixed 0.5 threshold:**
+    - With folder 8 in training, every group is flagged, including healthy folder 10.
+    - Without folder 8, every group is called healthy.
+    - Window AUC is 0.50-0.77 unweighted and 0.78-0.92 tree-weighted.
+    - Folder 10, the only healthy group (a cut trunk on a balcony), has the lowest mean score in the K=24 and K=12 models trained with folder 8.
+  - **Conclusion:** the score scale and threshold are not stable; including or excluding one healthy tree flips every decision. Per-device calibration is required.
+  - **Next:** new independent recordings are needed for any further test. Do not re-run `mil/holdout_eval.py`; it refuses to run while the marker exists.

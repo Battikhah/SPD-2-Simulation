@@ -1,0 +1,26 @@
+{
+ "method": "StratifiedGroupKFold(n_splits=10, shuffle=True, random_state=42), one row per tree group, stratified by label",
+ "fold_of_group": {
+  "g01": 0,
+  "g07": 0,
+  "g10": 0,
+  "g18": 1,
+  "g21": 1,
+  "g14": 2,
+  "g16": 2,
+  "g02": 3,
+  "g05": 3,
+  "g09": 4,
+  "g13": 4,
+  "g03": 5,
+  "g06": 5,
+  "g08": 6,
+  "g12": 6,
+  "g04": 7,
+  "g11": 7,
+  "g15": 8,
+  "g19": 8,
+  "g17": 9,
+  "g20": 9
+ }
+}

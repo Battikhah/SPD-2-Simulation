@@ -84,3 +84,13 @@ See docs/ACOUSTIC_DATA_AUDIT.md and outputs/acoustic-validity-audit/. The notebo
 ### Development-only duplicate and noise investigation
 
 All 65 train/validation candidate pairs were compared using hash-verified waveforms and metadata. Their peak absolute normalized waveform correlations over overlaps of at least five seconds were 0.021–0.185; no direct/shifted/gain-scaled duplicate was confirmed. This is not a clearance of lossy/short or shared-parent relationships; candidates stay UNREVIEWED. See `outputs/acoustic-validity-audit/cross_split_pair_evidence.csv`. Original paper defines AUDIO as human listening and CONFIRMATION as trunk-slicing to locate larvae; this refines prior provenance notes but does not establish per-clip species labels or complete ancestry. A fixed 125-recording validation subset under synthetic 10 dB white-noise perturbation changed 68 CNN predictions; scores reproduced for the unperturbed model, and no threshold was adjusted. See `docs/ACOUSTIC_DATA_AUDIT.md` and `noise_sensitivity.csv` for limits. No final holdout audio or scores used; no new training justified. The meeting view has a separate `meeting_app.py`; app.py still opens the full dashboard.
+
+### MIL findings report and model register — 14 November 2026
+
+Created `docs/mil-training-report/REPORT.md` and `MODEL_APPENDIX.md`, with per-fold configurations and saved metrics in `model_evidence.json`. Inventory: 60 non-smoke MIL run names, 69 run/seed attempts, 526 checkpoints; incomplete/planned experiments are explicitly separated from completed results. No acoustic training process was running at inspection; TensorBoard and editor/PlatformIO helpers were present. Existing user changes were preserved.
+
+Verification: 4,392 saved development window metrics independently matched scikit-learn/confusion counts; S-skip-K12 daily counts and AUC, metadata hashes, group separation, repeated FINAL predictions, inventory totals and Markdown links passed. Scoped Ruff passed for the two report utilities. Application tests were not rerun because the simulator/training code was unchanged. No audio/features/weights were loaded, and no holdout evaluation was rerun.
+
+The 11 November MIL holdout consumption (`outputs/mil/HOLDOUT_CONSUMED.json`) supersedes earlier unopened-test statements in this chronological file. Both the MIL holdout and overlapping original final split are consumed for all pipelines. New independent data are required for another test.
+
+Tool recovery: the sandbox shell failed with Windows logon error 1385; approved shell execution was used for repository reads and report checks. No campaigns or downloads were started.

@@ -1,0 +1,70 @@
+{
+ "status": "confirmed by the user on 9 November 2026 (answers 1A, 2A, 3B, 4A; see mil/DATA_REPORT.md section 8)",
+ "rule": "Merge folders only on same-tree evidence, never across labels: GPS positions less than 5.0 m apart, or shared recordings (byte-identical files or PCM-identical audio). The 25 m site rule is kept only as a later sensitivity check (site_groups_25m).",
+ "distance_threshold_m": 5.0,
+ "merge_evidence": {
+  "folder_1+folder_2": "4.6 m, recorded at the same time on two devices",
+  "folder_3+folder_4": "15 recordings with identical PCM audio and identical filenames (file headers differ)",
+  "folder_12+folder_14": "3.9 m, same device",
+  "folder_16+folder_17+folder_18": "16-17 3.1 m, 17-18 3.5 m",
+  "folder_19+folder_23": "4.5 m, same device",
+  "folder_20+folder_22": "identical coordinates, same device",
+  "folder_27+folder_34": "10 byte-identical files",
+  "folder_29+folder_30": "1.7 m, recorded at the same time on two devices"
+ },
+ "excluded_folders": {
+  "folder_35": "excluded completely (neither healthy nor infested): a pool of clips from infested trees over 96 days; contains a copy of a folder_1 file"
+ },
+ "excluded_paths": {
+  "field/field/test/difficult_cases/": "no workbook row, no label",
+  "field/field/train/clean/folder_9/folder_9/": "byte-identical copies of folder_9 files"
+ },
+ "dedup": "Within the data used, every recording whose PCM audio (or file bytes) duplicates an earlier one is dropped, keeping the first path in sorted order, so no recording counts twice.",
+ "sealed": {
+  "groups": ["s07", "s09", "s13", "s14"],
+  "reason": "The locked split's sealed test (folders 10, 15, 29, 32), extended to whole tree groups: folder_30 is sealed with folder_29. Never loaded for MIL development."
+ },
+ "groups": {
+  "g01": {"folders": ["folder_1", "folder_2"], "label": 1},
+  "g02": {"folders": ["folder_3", "folder_4"], "label": 1},
+  "g03": {"folders": ["folder_5"], "label": 1},
+  "g04": {"folders": ["folder_6"], "label": 1},
+  "g05": {"folders": ["folder_7"], "label": 0},
+  "g06": {"folders": ["folder_8"], "label": 0},
+  "g07": {"folders": ["folder_9"], "label": 0},
+  "g08": {"folders": ["folder_11"], "label": 1},
+  "g09": {"folders": ["folder_12", "folder_14"], "label": 1},
+  "g10": {"folders": ["folder_13"], "label": 1},
+  "g11": {"folders": ["folder_16", "folder_17", "folder_18"], "label": 1},
+  "g12": {"folders": ["folder_19", "folder_23"], "label": 1},
+  "g13": {"folders": ["folder_20", "folder_22"], "label": 1},
+  "g14": {"folders": ["folder_21"], "label": 1},
+  "g15": {"folders": ["folder_24"], "label": 0},
+  "g16": {"folders": ["folder_25"], "label": 0},
+  "g17": {"folders": ["folder_26"], "label": 1},
+  "g18": {"folders": ["folder_27", "folder_34"], "label": 1},
+  "g19": {"folders": ["folder_28"], "label": 1},
+  "g20": {"folders": ["folder_31"], "label": 1},
+  "g21": {"folders": ["folder_33"], "label": 1},
+  "s07": {"folders": ["folder_10"], "label": 0, "sealed": true},
+  "s09": {"folders": ["folder_15"], "label": 1, "sealed": true},
+  "s13": {"folders": ["folder_29", "folder_30"], "label": 1, "sealed": true},
+  "s14": {"folders": ["folder_32"], "label": 1, "sealed": true}
+ },
+ "site_groups_25m": {
+  "note": "Sensitivity check only: the handoff's 25 m rule over development folders, folder_8 kept separate, folder_35 excluded.",
+  "groups": {
+   "site01": ["folder_1", "folder_2", "folder_3", "folder_4"],
+   "site02": ["folder_5", "folder_6"],
+   "site03": ["folder_7"],
+   "site04": ["folder_8"],
+   "site05": ["folder_9"],
+   "site06": ["folder_11", "folder_12", "folder_13", "folder_14"],
+   "site07": ["folder_16", "folder_17", "folder_18", "folder_19", "folder_20", "folder_21", "folder_22", "folder_23", "folder_26", "folder_27", "folder_28", "folder_34"],
+   "site08": ["folder_24"],
+   "site09": ["folder_25"],
+   "site10": ["folder_31"],
+   "site11": ["folder_33"]
+  }
+ }
+}

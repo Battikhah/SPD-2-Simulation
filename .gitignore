@@ -23,3 +23,9 @@ firmware/esp32_stream1s/build/
 firmware/esp32_stream1s/managed_components/
 firmware/esp32_stream1s/dependencies.lock
 firmware/esp32_stream1s/sdkconfig
+
+# MIL live monitoring (regenerated every epoch)
+mil/LIVE_STATUS.md
+mil/live_curves.png
+mil/live_curves.tmp.png
+mil/LIVE_STATUS.tmp

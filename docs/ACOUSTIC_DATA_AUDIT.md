@@ -1,6 +1,8 @@
 # Acoustic data validity and evaluation audit
 
-**1 November 2026.** This is a development-data audit, not a final-test evaluation or a demonstration of infestation diagnosis. The original final holdout remains locked. Numbers below are recording counts; recordings from a tree, session or source are not independent replicates.
+**1 November 2026 (historical audit; later status below).** This is a development-data audit, not a demonstration of infestation diagnosis. Numbers below are recording counts; recordings from a tree, session or source are not independent replicates.
+
+**Current holdout status, recorded 14 November 2026:** the user-approved MIL evaluation consumed folders 10, 15, 29+30 and 32 on 11 November. The overlapping original final test is no longer independent for any pipeline. Earlier statements below that it was unopened describe the historical state. See [holdout results](../mil/HOLDOUT_RESULTS.md) and the [MIL findings report](mil-training-report/REPORT.md).
 
 ## Data and label provenance
 
@@ -126,3 +128,9 @@ Details are in `docs/ESP32_DEV_DAY_REPORT.md`. All of this uses development data
 - Report recorder-held-out and within-recorder metrics.
 - Site and activity level remain confounded within each recorder.
 - New recordings must include clean palms at the same urban sites, recorded with the same devices, plus the ESP32 sensor chain's own noise floor.
+
+## MIL reporting review — 14 November 2026
+
+Created the [MIL findings report](mil-training-report/REPORT.md) and [complete model appendix](mil-training-report/MODEL_APPENDIX.md) from saved results and configurations. The inventory contains 60 non-smoke run names, 69 run/seed attempts and 526 checkpoints, including partial runs and all-data fits. Only two XS runs have complete CV; no P-* production checkpoints were found. Completed R-AST-lin and R-Awin-K12 have five seeds each. Removing folder 8 from scoring is distinguished from retraining without it.
+
+Independently rechecked 4,392 saved development window metrics against scikit-learn/confusion counts and reconstructed the S-skip-K12 daily example (TP 37, FN 2, FP 6, TN 3; AUC 0.834757835). Preserved saved bootstrap intervals rather than regenerating them. No training, audio/feature access, model-weight loading or holdout scoring was performed. The holdout consumption marker and existing holdout report were read as historical evidence only. New independent recordings remain necessary for a new test.
